@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Descriptive Analysis Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        
+        .header h1 { font-size: 2.2rem; margin-bottom: 10px; }
+        .header p { opacity: 0.9; }
+        
+        .main-content { padding: 30px; }
+        
+        .section {
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 1.4rem;
+            color: #374151;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        
+        .file-upload {
+            border: 2px dashed #d1d5db;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9fafb;
+        }
+        
+        .file-upload:hover {
+            border-color: #4f46e5;
+            background: #f3f4f6;
+        }
+        
+        .file-upload.dragover {
+            border-color: #4f46e5;
+            background: #eef2ff;
+        }
+        
+        .upload-text {
+            font-size: 1.1rem;
+            color: #6b7280;
+            margin-bottom: 8px;
+        }
+        
+        .upload-subtext {
+            color: #9ca3af;
+            font-size: 0.9rem;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            margin: 5px;
+        }
+        
+        .btn-primary {
+            background: #4f46e5;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #4338ca;
+            transform: translateY(-1px);
+        }
+        
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        
+        .btn-secondary:hover { background: #d1d5db; }
+        
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .select-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        select {
+            padding: 8px 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 6px;
+            background: white;
+            min-width: 120px;
+        }
+        
+        select:focus {
+            outline: none;
+            border-color: #4f46e5;
+        }
+        
+        .column-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+            margin-top: 15px;
+        }
+        
+        .column-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px;
+            background: #f8fafc;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .column-item:hover {
+            background: #f1f5f9;
+        }
+        
+        .column-checkbox {
+            accent-color: #4f46e5;
+        }
+        
+        .column-label {
+            cursor: pointer;
+            color: #374151;
+            font-weight: 500;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        th {
+            background: #f8fafc;
+            font-weight: 600;
+            color: #374151;
+            position: sticky;
+            top: 0;
+        }
+        
+        tr:hover { background: #f9fafb; }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            opacity: 0.9;
+            font-size: 0.85rem;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 350px;
+            margin: 20px 0;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #6b7280;
+        }
+        
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #4f46e5;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .hidden { display: none !important; }
+        
+        .error {
+            background: #fee2e2;
+            color: #dc2626;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border: 1px solid #fecaca;
+        }
+        
+        .insights-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .insights-list li {
+            background: #f0f9ff;
+            border-left: 4px solid #0ea5e9;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .footer {
+            background: linear-gradient(135deg, #1f2937, #374151);
+            color: white;
+            text-align: center;
+            padding: 25px 30px;
+            margin-top: 0;
+        }
+        
+        .footer-content p {
+            margin: 5px 0;
+            font-size: 0.95rem;
+        }
+        
+        .footer-content p:first-child {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .footer-content strong {
+            color: #fbbf24;
+            font-weight: 700;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Descriptive Analysis Dashboard</h1>
+            <p>Upload your data and get comprehensive statistical insights</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- Upload Section -->
+            <div class="section">
+                <h2 class="section-title">1. Upload Data File</h2>
+                <div class="file-upload" id="fileUpload">
+                    <div class="upload-text">📁 Click to upload or drag & drop</div>
+                    <div class="upload-subtext">CSV or Excel files (.csv, .xlsx, .xls)</div>
+                </div>
+                <input type="file" id="fileInput" style="display: none;" accept=".csv,.xlsx,.xls">
+                <div class="loading" id="loading">
+                    <div class="spinner"></div>
+                    <div>Processing file...</div>
+                </div>
+                <div id="error"></div>
+            </div>
+            
+            <!-- Column Selection -->
+            <div class="section hidden" id="columnSection">
+                <h2 class="section-title">2. Select Columns</h2>
+                <div class="controls">
+                    <button class="btn btn-secondary" id="selectAll">Select All</button>
+                    <button class="btn btn-secondary" id="selectNone">Select None</button>
+                    <div class="select-group">
+                        <label>Show rows:</label>
+                        <select id="rowLimit">
+                            <option value="100">100</option>
+                            <option value="500">500</option>
+                            <option value="1000">1000</option>
+                            <option value="all">All</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="columnGrid" class="column-grid"></div>
+            </div>
+            
+            <!-- Data Preview -->
+            <div class="section hidden" id="dataSection">
+                <h2 class="section-title">3. Data Preview</h2>
+                <div class="table-container" id="tableContainer"></div>
+            </div>
+            
+            <!-- Pivot Analysis -->
+            <div class="section hidden" id="pivotSection">
+                <h2 class="section-title">4. Pivot Analysis</h2>
+                <div class="controls">
+                    <div class="select-group">
+                        <label>Group by:</label>
+                        <select id="pivotGroup">
+                            <option value="">Select column</option>
+                        </select>
+                    </div>
+                    <div class="select-group">
+                        <label>Value:</label>
+                        <select id="pivotValue">
+                            <option value="">Select column</option>
+                        </select>
+                    </div>
+                    <div class="select-group">
+                        <label>Operation:</label>
+                        <select id="pivotOp">
+                            <option value="sum">Sum</option>
+                            <option value="avg">Average</option>
+                            <option value="count">Count</option>
+                            <option value="distinct">Distinct</option>
+                            <option value="median">Median</option>
+                            <option value="min">Min</option>
+                            <option value="max">Max</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="generatePivot">Generate</button>
+                </div>
+                <div class="table-container hidden" id="pivotTable"></div>
+            </div>
+            
+            <!-- Statistics -->
+            <div class="section hidden" id="statsSection">
+                <h2 class="section-title">5. Descriptive Statistics</h2>
+                <div id="statsContainer"></div>
+            </div>
+            
+            <!-- Charts -->
+            <div class="section hidden" id="chartSection">
+                <h2 class="section-title">6. Data Visualization</h2>
+                <div class="controls">
+                    <div class="select-group">
+                        <label>Chart Type:</label>
+                        <select id="chartType">
+                            <option value="column-comparison">Bar Chart</option>
+                            <option value="distribution">Pie Chart</option>
+                            <option value="correlation">Data Quality</option>
+                            <option value="summary">Summary</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" id="generateChart">Generate Chart</button>
+                    <div style="font-size: 0.85rem; color: #6b7280; margin-left: 10px;">
+                        💡 Bar/Pie charts use pivot data when available
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="mainChart"></canvas>
+                </div>
+            </div>
+            
+            <!-- Insights -->
+            <div class="section hidden" id="insightsSection">
+                <h2 class="section-title">7. Data Insights</h2>
+                <ul id="insights" class="insights-list"></ul>
+            </div>
+            
+            <!-- Export Section -->
+            <div class="section hidden" id="exportSection">
+                <h2 class="section-title">8. Export Analysis</h2>
+                <div class="controls">
+                    <button class="btn btn-primary" id="exportExcel">📊 Export to Excel</button>
+                    <button class="btn btn-primary" id="exportCSV">📄 Export to CSV</button>
+                    <button class="btn btn-secondary" id="exportReport">📋 Export Full Report</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-content">
+                <p>⚡ Created by <strong>Bala Excel Insights</strong> | Advanced Data Analytics Dashboard</p>
+                <p>💡 Transform your data into actionable insights with powerful statistical analysis</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let rawData = [];
+        let filteredData = [];
+        let selectedColumns = [];
+        let currentChart = null;
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', init);
+        
+        function init() {
+            setupFileUpload();
+            setupEventListeners();
+        }
+        
+        function setupFileUpload() {
+            const fileUpload = document.getElementById('fileUpload');
+            const fileInput = document.getElementById('fileInput');
+            
+            // Click to upload
+            fileUpload.onclick = () => fileInput.click();
+            
+            // File input change
+            fileInput.onchange = (e) => {
+                if (e.target.files[0]) {
+                    processFile(e.target.files[0]);
+                }
+            };
+            
+            // Drag and drop
+            fileUpload.ondragover = (e) => {
+                e.preventDefault();
+                fileUpload.classList.add('dragover');
+            };
+            
+            fileUpload.ondragleave = () => {
+                fileUpload.classList.remove('dragover');
+            };
+            
+            fileUpload.ondrop = (e) => {
+                e.preventDefault();
+                fileUpload.classList.remove('dragover');
+                if (e.dataTransfer.files[0]) {
+                    processFile(e.dataTransfer.files[0]);
+                }
+            };
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('selectAll').onclick = selectAllColumns;
+            document.getElementById('selectNone').onclick = selectNoneColumns;
+            document.getElementById('rowLimit').onchange = updateDataView;
+            document.getElementById('generatePivot').onclick = generatePivot;
+            document.getElementById('generateChart').onclick = generateMeaningfulChart;
+            document.getElementById('exportExcel').onclick = exportToExcel;
+            document.getElementById('exportCSV').onclick = exportToCSV;
+            document.getElementById('exportReport').onclick = exportFullReport;
+        }
+        
+        function showLoading() {
+            document.getElementById('loading').style.display = 'block';
+        }
+        
+        function hideLoading() {
+            document.getElementById('loading').style.display = 'none';
+        }
+        
+        function showError(message) {
+            document.getElementById('error').innerHTML = `<div class="error">${message}</div>`;
+        }
+        
+        function clearError() {
+            document.getElementById('error').innerHTML = '';
+        }
+        
+        function processFile(file) {
+            showLoading();
+            clearError();
+            
+            const ext = file.name.split('.').pop().toLowerCase();
+            console.log('Processing file:', file.name, 'Type:', ext);
+            
+            if (ext === 'csv') {
+                processCSV(file);
+            } else if (ext === 'xlsx' || ext === 'xls') {
+                processExcel(file);
+            } else {
+                showError('Please upload a CSV or Excel file');
+                hideLoading();
+            }
+        }
+        
+        function processCSV(file) {
+            Papa.parse(file, {
+                header: true,
+                skipEmptyLines: true,
+                dynamicTyping: true,
+                complete: function(results) {
+                    console.log('CSV parsed:', results.data.length, 'rows');
+                    rawData = results.data;
+                    setupColumns();
+                    hideLoading();
+                },
+                error: function(error) {
+                    console.error('CSV error:', error);
+                    showError('Error parsing CSV: ' + error.message);
+                    hideLoading();
+                }
+            });
+        }
+        
+        function processExcel(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                    
+                    console.log('Excel parsed:', jsonData.length, 'rows');
+                    rawData = jsonData;
+                    setupColumns();
+                    hideLoading();
+                } catch (error) {
+                    console.error('Excel error:', error);
+                    showError('Error parsing Excel: ' + error.message);
+                    hideLoading();
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+        
+        function setupColumns() {
+            if (!rawData || rawData.length === 0) {
+                showError('No data found in file');
+                return;
+            }
+            
+            const columns = Object.keys(rawData[0]);
+            selectedColumns = [...columns];
+            
+            console.log('Columns:', columns);
+            
+            // Setup column checkboxes
+            const grid = document.getElementById('columnGrid');
+            grid.innerHTML = '';
+            
+            columns.forEach(col => {
+                const div = document.createElement('div');
+                div.className = 'column-item';
+                div.innerHTML = `
+                    <input type="checkbox" class="column-checkbox" value="${col}" checked>
+                    <label class="column-label">${col}</label>
+                `;
+                grid.appendChild(div);
+            });
+            
+            // Add event listeners to checkboxes
+            document.querySelectorAll('.column-checkbox').forEach(cb => {
+                cb.onchange = updateColumnSelection;
+            });
+            
+            // Setup dropdowns
+            setupDropdowns(columns);
+            
+            // Show sections and update data
+            document.getElementById('columnSection').classList.remove('hidden');
+            updateDataView();
+            generateStats();
+            generateInsights();
+            generateCharts();
+        }
+        
+        function setupDropdowns(columns) {
+            const selects = ['pivotGroup', 'pivotValue'];
+            selects.forEach(id => {
+                const select = document.getElementById(id);
+                select.innerHTML = '<option value="">Select column</option>';
+                columns.forEach(col => {
+                    select.innerHTML += `<option value="${col}">${col}</option>`;
+                });
+            });
+        }
+        
+        function selectAllColumns() {
+            document.querySelectorAll('.column-checkbox').forEach(cb => {
+                cb.checked = true;
+            });
+            updateColumnSelection();
+        }
+        
+        function selectNoneColumns() {
+            document.querySelectorAll('.column-checkbox').forEach(cb => {
+                cb.checked = false;
+            });
+            updateColumnSelection();
+        }
+        
+        function updateColumnSelection() {
+            selectedColumns = [];
+            document.querySelectorAll('.column-checkbox:checked').forEach(cb => {
+                selectedColumns.push(cb.value);
+            });
+            console.log('Selected columns:', selectedColumns);
+            updateDataView();
+            generateStats();
+        }
+        
+        function updateDataView() {
+            if (selectedColumns.length === 0) {
+                document.getElementById('dataSection').classList.add('hidden');
+                return;
+            }
+            
+            const limit = document.getElementById('rowLimit').value;
+            const maxRows = limit === 'all' ? rawData.length : parseInt(limit);
+            
+            filteredData = rawData.slice(0, maxRows).map(row => {
+                const newRow = {};
+                selectedColumns.forEach(col => {
+                    newRow[col] = row[col];
+                });
+                return newRow;
+            });
+            
+            renderTable();
+            
+            // Show other sections
+            ['dataSection', 'pivotSection', 'statsSection', 'chartSection', 'insightsSection', 'exportSection']
+                .forEach(id => document.getElementById(id).classList.remove('hidden'));
+        }
+        
+        function renderTable() {
+            const container = document.getElementById('tableContainer');
+            
+            let html = '<table><thead><tr>';
+            selectedColumns.forEach(col => {
+                html += `<th>${col}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+            
+            filteredData.forEach(row => {
+                html += '<tr>';
+                selectedColumns.forEach(col => {
+                    const value = row[col] !== undefined && row[col] !== null ? row[col] : '';
+                    html += `<td>${value}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+        
+        function generatePivot() {
+            const groupCol = document.getElementById('pivotGroup').value;
+            const valueCol = document.getElementById('pivotValue').value;
+            const operation = document.getElementById('pivotOp').value;
+            
+            if (!groupCol || !valueCol) {
+                alert('Please select both group and value columns');
+                return;
+            }
+            
+            const groups = {};
+            filteredData.forEach(row => {
+                const key = row[groupCol];
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(row[valueCol]);
+            });
+            
+            const pivotData = [];
+            Object.entries(groups).forEach(([key, values]) => {
+                const numValues = values.filter(v => v != null && !isNaN(v)).map(Number);
+                let result = 0;
+                
+                switch(operation) {
+                    case 'sum': result = numValues.reduce((a, b) => a + b, 0); break;
+                    case 'avg': result = numValues.length ? numValues.reduce((a, b) => a + b, 0) / numValues.length : 0; break;
+                    case 'count': result = values.length; break;
+                    case 'distinct': result = new Set(values).size; break;
+                    case 'median': 
+                        const sorted = numValues.sort((a, b) => a - b);
+                        const mid = Math.floor(sorted.length / 2);
+                        result = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+                        break;
+                    case 'min': result = numValues.length ? Math.min(...numValues) : 0; break;
+                    case 'max': result = numValues.length ? Math.max(...numValues) : 0; break;
+                }
+                
+                pivotData.push({
+                    [groupCol]: key,
+                    [`${operation}(${valueCol})`]: parseFloat(result.toFixed(2))
+                });
+            });
+            
+            renderPivotTable(pivotData);
+            generateInsights(); // Update insights after pivot
+        }
+        
+        function renderPivotTable(data) {
+            if (data.length === 0) return;
+            
+            const container = document.getElementById('pivotTable');
+            const columns = Object.keys(data[0]);
+            
+            let html = '<table><thead><tr>';
+            columns.forEach(col => html += `<th>${col}</th>`);
+            html += '</tr></thead><tbody>';
+            
+            data.forEach(row => {
+                html += '<tr>';
+                columns.forEach(col => {
+                    html += `<td>${row[col]}</td>`;
+                });
+                html += '</tr>';
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            container.classList.remove('hidden');
+        }
+        
+        function generateStats() {
+            const container = document.getElementById('statsContainer');
+            container.innerHTML = '';
+            
+            selectedColumns.forEach(col => {
+                const values = filteredData.map(row => row[col]).filter(v => v != null);
+                const numValues = values.filter(v => !isNaN(v)).map(Number);
+                
+                const div = document.createElement('div');
+                div.innerHTML = `<h3 style="margin: 20px 0 10px 0; color: #374151;">${col}</h3>`;
+                
+                if (numValues.length > 0) {
+                    const stats = calculateStats(numValues);
+                    const statsGrid = document.createElement('div');
+                    statsGrid.className = 'stats-grid';
+                    statsGrid.innerHTML = `
+                        <div class="stat-card"><div class="stat-value">${stats.count}</div><div class="stat-label">Count</div></div>
+                        <div class="stat-card"><div class="stat-value">${stats.mean}</div><div class="stat-label">Mean</div></div>
+                        <div class="stat-card"><div class="stat-value">${stats.median}</div><div class="stat-label">Median</div></div>
+                        <div class="stat-card"><div class="stat-value">${stats.std}</div><div class="stat-label">Std Dev</div></div>
+                        <div class="stat-card"><div class="stat-value">${stats.min}</div><div class="stat-label">Min</div></div>
+                        <div class="stat-card"><div class="stat-value">${stats.max}</div><div class="stat-label">Max</div></div>
+                    `;
+                    div.appendChild(statsGrid);
+                } else {
+                    const unique = new Set(values).size;
+                    const statsGrid = document.createElement('div');
+                    statsGrid.className = 'stats-grid';
+                    statsGrid.innerHTML = `
+                        <div class="stat-card"><div class="stat-value">${values.length}</div><div class="stat-label">Count</div></div>
+                        <div class="stat-card"><div class="stat-value">${unique}</div><div class="stat-label">Unique</div></div>
+                    `;
+                    div.appendChild(statsGrid);
+                }
+                
+                container.appendChild(div);
+            });
+        }
+        
+        function calculateStats(values) {
+            const sorted = values.sort((a, b) => a - b);
+            const count = values.length;
+            const sum = values.reduce((a, b) => a + b, 0);
+            const mean = sum / count;
+            
+            const mid = Math.floor(count / 2);
+            const median = count % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+            
+            const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / count;
+            const std = Math.sqrt(variance);
+            
+            return {
+                count,
+                mean: mean.toFixed(2),
+                median: median.toFixed(2),
+                std: std.toFixed(2),
+                min: Math.min(...values).toFixed(2),
+                max: Math.max(...values).toFixed(2)
+            };
+        }
+        
+        function generateMeaningfulChart() {
+            const chartType = document.getElementById('chartType').value;
+            const canvas = document.getElementById('mainChart');
+            const ctx = canvas.getContext('2d');
+            
+            // Destroy existing chart
+            if (currentChart) {
+                currentChart.destroy();
+            }
+            
+            // Check if pivot data is available
+            const pivotTable = document.getElementById('pivotTable');
+            const hasPivotData = !pivotTable.classList.contains('hidden') && pivotTable.querySelector('table');
+            
+            if (hasPivotData && (chartType === 'column-comparison' || chartType === 'distribution')) {
+                generatePivotChart(ctx, chartType);
+            } else {
+                switch(chartType) {
+                    case 'column-comparison':
+                        generateColumnComparisonChart(ctx);
+                        break;
+                    case 'correlation':
+                        generateCorrelationChart(ctx);
+                        break;
+                    case 'distribution':
+                        generateDistributionChart(ctx);
+                        break;
+                    case 'summary':
+                        generateSummaryChart(ctx);
+                        break;
+                }
+            }
+        }
+        
+        function generatePivotChart(ctx, chartType) {
+            const pivotTable = document.getElementById('pivotTable');
+            const table = pivotTable.querySelector('table');
+            
+            if (!table) return;
+            
+            // Extract pivot data
+            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
+            const rows = Array.from(table.querySelectorAll('tbody tr'));
+            
+            const pivotData = rows.map(row => {
+                const cells = Array.from(row.querySelectorAll('td'));
+                const rowData = {};
+                headers.forEach((header, index) => {
+                    rowData[header] = cells[index]?.textContent.trim() || '';
+                });
+                return rowData;
+            }).slice(0, 15); // Limit to top 15 for better visualization
+            
+            if (pivotData.length === 0) return;
+            
+            const groupColumn = headers[0];
+            const valueColumn = headers[1];
+            
+            if (chartType === 'column-comparison') {
+                currentChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: pivotData.map(row => {
+                            const label = row[groupColumn];
+                            return String(label).length > 12 ? String(label).substring(0, 12) + '...' : label;
+                        }),
+                        datasets: [{
+                            label: valueColumn,
+                            data: pivotData.map(row => parseFloat(row[valueColumn]) || 0),
+                            backgroundColor: 'rgba(79, 70, 229, 0.7)',
+                            borderColor: 'rgba(79, 70, 229, 1)',
+                            borderWidth: 2,
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `${valueColumn} by ${groupColumn}`,
+                                font: { size: 16, weight: 'bold' }
+                            },
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: valueColumn },
+                                grid: { color: 'rgba(0,0,0,0.1)' }
+                            },
+                            x: {
+                                title: { display: true, text: groupColumn },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            } else if (chartType === 'distribution') {
+                currentChart = new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: pivotData.map(row => {
+                            const label = row[groupColumn];
+                            return String(label).length > 15 ? String(label).substring(0, 15) + '...' : label;
+                        }),
+                        datasets: [{
+                            data: pivotData.map(row => parseFloat(row[valueColumn]) || 0),
+                            backgroundColor: pivotData.map((_, i) => 
+                                `hsl(${(i * 360 / pivotData.length) + 200}, 70%, 65%)`
+                            ),
+                            borderWidth: 2,
+                            borderColor: '#fff'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            title: {
+                                display: true,
+                                text: `${valueColumn} Distribution by ${groupColumn}`,
+                                font: { size: 16, weight: 'bold' }
+                            },
+                            legend: {
+                                position: 'right',
+                                labels: { boxWidth: 12, padding: 10 }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+        
+        function generateColumnComparisonChart(ctx) {
+            // Compare numeric columns by their means
+            const numericColumns = [];
+            selectedColumns.forEach(col => {
+                const values = filteredData.map(row => row[col]).filter(v => v != null);
+                const numValues = values.filter(v => !isNaN(v)).map(Number);
+                if (numValues.length > values.length * 0.7 && numValues.length > 0) {
+                    const stats = calculateStats(numValues);
+                    numericColumns.push({
+                        column: col,
+                        mean: parseFloat(stats.mean),
+                        count: numValues.length
+                    });
+                }
+            });
+            
+            if (numericColumns.length === 0) {
+                ctx.fillText('No numeric columns available for comparison', 20, 50);
+                return;
+            }
+            
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: numericColumns.map(col => col.column),
+                    datasets: [{
+                        label: 'Average Value',
+                        data: numericColumns.map(col => col.mean),
+                        backgroundColor: 'rgba(79, 70, 229, 0.7)',
+                        borderColor: 'rgba(79, 70, 229, 1)',
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Average Values Comparison Across Numeric Columns'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Average Value' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function generateCorrelationChart(ctx) {
+            // Show data completeness across columns
+            const completenessData = selectedColumns.map(col => {
+                const values = filteredData.map(row => row[col]);
+                const nonEmpty = values.filter(v => v != null && v !== '').length;
+                return {
+                    column: col,
+                    completeness: (nonEmpty / filteredData.length * 100).toFixed(1)
+                };
+            });
+            
+            currentChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: completenessData.map(item => `${item.column} (${item.completeness}%)`),
+                    datasets: [{
+                        data: completenessData.map(item => parseFloat(item.completeness)),
+                        backgroundColor: completenessData.map((_, i) => 
+                            `hsl(${(i * 360 / completenessData.length) + 120}, 70%, 60%)`
+                        )
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Data Completeness by Column'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        function generateDistributionChart(ctx) {
+            // Show count of records by the first categorical column
+            const categoricalCol = selectedColumns.find(col => {
+                const values = filteredData.map(row => row[col]).filter(v => v != null);
+                const numValues = values.filter(v => !isNaN(v)).map(Number);
+                return numValues.length <= values.length * 0.7;
+            });
+            
+            if (!categoricalCol) {
+                // If no categorical, show distribution of first numeric column
+                const numericCol = selectedColumns.find(col => {
+                    const values = filteredData.map(row => row[col]).filter(v => v != null);
+                    const numValues = values.filter(v => !isNaN(v)).map(Number);
+                    return numValues.length > values.length * 0.7;
+                });
+                
+                if (numericCol) {
+                    const values = filteredData.map(row => row[numericCol]).filter(v => !isNaN(v)).map(Number);
+                    const min = Math.min(...values);
+                    const max = Math.max(...values);
+                    const binCount = Math.min(10, Math.ceil(Math.sqrt(values.length)));
+                    const binSize = (max - min) / binCount;
+                    
+                    const bins = Array(binCount).fill(0);
+                    const binLabels = [];
+                    
+                    for (let i = 0; i < binCount; i++) {
+                        const binStart = min + (i * binSize);
+                        binLabels.push(binStart.toFixed(1));
+                    }
+                    
+                    values.forEach(value => {
+                        let binIndex = Math.floor((value - min) / binSize);
+                        if (binIndex >= binCount) binIndex = binCount - 1;
+                        bins[binIndex]++;
+                    });
+                    
+                    currentChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: binLabels,
+                            datasets: [{
+                                label: 'Frequency',
+                                data: bins,
+                                backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                                borderColor: 'rgba(34, 197, 94, 1)',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: `Distribution of ${numericCol}`
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    beginAtZero: true,
+                                    title: { display: true, text: 'Frequency' }
+                                },
+                                x: {
+                                    title: { display: true, text: numericCol }
+                                }
+                            }
+                        }
+                    });
+                }
+                return;
+            }
+            
+            // Show top categories
+            const values = filteredData.map(row => row[categoricalCol]).filter(v => v != null && v !== '');
+            const freq = {};
+            values.forEach(v => {
+                const key = String(v);
+                freq[key] = (freq[key] || 0) + 1;
+            });
+            
+            const sortedEntries = Object.entries(freq)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 10);
+            
+            currentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedEntries.map(([key]) => key.length > 15 ? key.substring(0, 15) + '...' : key),
+                    datasets: [{
+                        label: 'Count',
+                        data: sortedEntries.map(([,count]) => count),
+                        backgroundColor: 'rgba(168, 85, 247, 0.7)',
+                        borderColor: 'rgba(168, 85, 247, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: `Top Categories in ${categoricalCol}`
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: { display: true, text: 'Count' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function generateSummaryChart(ctx) {
+            // Summary of column types and data quality
+            let numericCount = 0;
+            let categoricalCount = 0;
+            let emptyCount = 0;
+            
+            selectedColumns.forEach(col => {
+                const values = filteredData.map(row => row[col]);
+                const nonEmpty = values.filter(v => v != null && v !== '');
+                const numValues = nonEmpty.filter(v => !isNaN(v)).map(Number);
+                
+                emptyCount += values.length - nonEmpty.length;
+                
+                if (numValues.length > nonEmpty.length * 0.7) {
+                    numericCount++;
+                } else {
+                    categoricalCount++;
+                }
+            });
+            
+            const totalCells = filteredData.length * selectedColumns.length;
+            const filledCells = totalCells - emptyCount;
+            
+            currentChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        `Numeric Columns (${numericCount})`,
+                        `Categorical Columns (${categoricalCount})`,
+                        `Filled Cells (${((filledCells/totalCells)*100).toFixed(1)}%)`,
+                        `Empty Cells (${((emptyCount/totalCells)*100).toFixed(1)}%)`
+                    ],
+                    datasets: [{
+                        data: [numericCount, categoricalCount, filledCells, emptyCount],
+                        backgroundColor: [
+                            'rgba(79, 70, 229, 0.8)',
+                            'rgba(168, 85, 247, 0.8)',
+                            'rgba(34, 197, 94, 0.8)',
+                            'rgba(239, 68, 68, 0.8)'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Dataset Summary Overview'
+                        },
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        function generateCharts() {
+            // Auto-generate the first meaningful chart
+            generateMeaningfulChart();
+        }
+        
+        function generateInsights() {
+            const insights = [];
+            
+            // Dataset overview
+            insights.push(`📊 Dataset: ${rawData.length} rows × ${Object.keys(rawData[0] || {}).length} columns`);
+            insights.push(`🎯 Analysis: ${selectedColumns.length} columns selected`);
+            
+            // Column type analysis
+            let numericCols = 0;
+            let categoricalCols = 0;
+            let highVarianceCols = [];
+            let lowCardinalityCols = [];
+            let uniqueIdCols = [];
+            
+            selectedColumns.forEach(col => {
+                const values = filteredData.map(row => row[col]).filter(v => v != null && v !== '');
+                const numValues = values.filter(v => !isNaN(v)).map(Number);
+                const unique = new Set(values).size;
+                
+                if (numValues.length > values.length * 0.7 && numValues.length > 0) {
+                    // Numeric column
+                    numericCols++;
+                    const stats = calculateStats(numValues);
+                    if (parseFloat(stats.std) > parseFloat(stats.mean)) {
+                        highVarianceCols.push(col);
+                    }
+                } else {
+                    // Categorical column
+                    categoricalCols++;
+                    if (unique === values.length && values.length > 1) {
+                        uniqueIdCols.push(col);
+                    } else if (unique < values.length * 0.1 && unique < 10) {
+                        lowCardinalityCols.push(col);
+                    }
+                }
+            });
+            
+            // Add type insights
+            if (numericCols > 0) {
+                insights.push(`🔢 ${numericCols} numeric column${numericCols > 1 ? 's' : ''} detected`);
+            }
+            if (categoricalCols > 0) {
+                insights.push(`🏷️ ${categoricalCols} categorical column${categoricalCols > 1 ? 's' : ''} detected`);
+            }
+            
+            // Add specific insights
+            if (highVarianceCols.length > 0) {
+                insights.push(`⚠️ High variance: ${highVarianceCols.slice(0, 2).join(', ')}${highVarianceCols.length > 2 ? ` (+${highVarianceCols.length - 2} more)` : ''}`);
+            }
+            
+            if (uniqueIdCols.length > 0) {
+                insights.push(`🔑 Unique identifiers: ${uniqueIdCols.slice(0, 2).join(', ')}`);
+            }
+            
+            if (lowCardinalityCols.length > 0) {
+                insights.push(`📊 Low cardinality: ${lowCardinalityCols.slice(0, 2).join(', ')}`);
+            }
+            
+            // Data quality insight
+            const totalCells = filteredData.length * selectedColumns.length;
+            const emptyCells = selectedColumns.reduce((sum, col) => {
+                return sum + filteredData.filter(row => row[col] == null || row[col] === '').length;
+            }, 0);
+            const completeness = ((totalCells - emptyCells) / totalCells * 100).toFixed(1);
+            
+            if (completeness < 95) {
+                insights.push(`⚡ Data completeness: ${completeness}%`);
+            } else {
+                insights.push(`✅ Excellent data quality: ${completeness}% complete`);
+            }
+            
+            // Pivot insight if available
+            const pivotTable = document.getElementById('pivotTable');
+            if (!pivotTable.classList.contains('hidden')) {
+                insights.push(`📈 Pivot analysis ready - use charts to visualize trends`);
+            }
+            
+            const list = document.getElementById('insights');
+            list.innerHTML = insights.map(insight => `<li>${insight}</li>`).join('');
+        }
+        
+        // Export Functions
+        function exportToExcel() {
+            const wb = XLSX.utils.book_new();
+            
+            // Add filtered data sheet
+            const ws1 = XLSX.utils.json_to_sheet(filteredData);
+            XLSX.utils.book_append_sheet(wb, ws1, "Filtered Data");
+            
+            // Add statistics sheet
+            const statsData = [];
+            selectedColumns.forEach(col => {
+                const values = filteredData.map(row => row[col]).filter(v => v != null);
+                const numValues = values.filter(v => !isNaN(v)).map(Number);
+                
+                if (numValues.length > 0) {
+                    const stats = calculateStats(numValues);
+                    statsData.push({
+                        Column: col,
+                        Count: stats.count,
+                        Mean: stats.mean,
+                        Median: stats.median,
+                        'Std Dev': stats.std,
+                        Min: stats.min,
+                        Max: stats.max
+                    });
+                } else {
+                    statsData.push({
+                        Column: col,
+                        Count: values.length,
+                        'Unique Values': new Set(values).size,
+                        Type: 'Categorical'
+                    });
+                }
+            });
+            
+            const ws2 = XLSX.utils.json_to_sheet(statsData);
+            XLSX.utils.book_append_sheet(wb, ws2, "Statistics");
+            
+            // Add pivot data if available
+            const pivotTable = document.getElementById('pivotTable');
+            if (!pivotTable.classList.contains('hidden') && pivotTable.querySelector('table')) {
+                const pivotData = [];
+                const rows = pivotTable.querySelectorAll('tbody tr');
+                const headers = Array.from(pivotTable.querySelectorAll('thead th')).map(th => th.textContent);
+                
+                rows.forEach(row => {
+                    const cells = Array.from(row.querySelectorAll('td'));
+                    const rowData = {};
+                    headers.forEach((header, index) => {
+                        rowData[header] = cells[index]?.textContent || '';
+                    });
+                    pivotData.push(rowData);
+                });
+                
+                if (pivotData.length > 0) {
+                    const ws3 = XLSX.utils.json_to_sheet(pivotData);
+                    XLSX.utils.book_append_sheet(wb, ws3, "Pivot Analysis");
+                }
+            }
+            
+            XLSX.writeFile(wb, `data_analysis_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+        
+        function exportToCSV() {
+            const csv = Papa.unparse(filteredData);
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `filtered_data_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        function exportFullReport() {
+            const insights = document.getElementById('insights').innerHTML;
+            const reportContent = `
+# Data Analysis Report
+Generated on: ${new Date().toLocaleDateString()}
+
+## Dataset Summary
+- Total Rows: ${rawData.length}
+- Total Columns: ${Object.keys(rawData[0] || {}).length}
+- Selected Columns: ${selectedColumns.length}
+- Displayed Rows: ${filteredData.length}
+
+## Column Analysis
+${selectedColumns.map(col => {
+    const values = filteredData.map(row => row[col]).filter(v => v != null);
+    const numValues = values.filter(v => !isNaN(v)).map(Number);
+    
+    if (numValues.length > 0) {
+        const stats = calculateStats(numValues);
+        return `### ${col} (Numeric)
+- Count: ${stats.count}
+- Mean: ${stats.mean}
+- Median: ${stats.median}
+- Standard Deviation: ${stats.std}
+- Minimum: ${stats.min}
+- Maximum: ${stats.max}`;
+    } else {
+        const unique = new Set(values).size;
+        return `### ${col} (Categorical)
+- Total Values: ${values.length}
+- Unique Values: ${unique}`;
+    }
+}).join('\n\n')}
+
+## Key Insights
+${insights.replace(/<li>/g, '- ').replace(/<\/li>/g, '').replace(/<ul[^>]*>|<\/ul>/g, '')}
+
+---
+Report generated by Bala Excel Insights Analytics Dashboard
+            `;
+            
+            const blob = new Blob([reportContent], { type: 'text/markdown;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `data_analysis_report_${new Date().toISOString().split('T')[0]}.md`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
