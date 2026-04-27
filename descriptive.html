@@ -1,1442 +1,1974 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Descriptive Analysis Dashboard</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-            overflow: hidden;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #4f46e5, #7c3aed);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        
-        .header h1 { font-size: 2.2rem; margin-bottom: 10px; }
-        .header p { opacity: 0.9; }
-        
-        .main-content { padding: 30px; }
-        
-        .section {
-            margin-bottom: 30px;
-            background: white;
-            border-radius: 12px;
-            padding: 25px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        
-        .section-title {
-            font-size: 1.4rem;
-            color: #374151;
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-        
-        .file-upload {
-            border: 2px dashed #d1d5db;
-            border-radius: 10px;
-            padding: 40px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            background: #f9fafb;
-        }
-        
-        .file-upload:hover {
-            border-color: #4f46e5;
-            background: #f3f4f6;
-        }
-        
-        .file-upload.dragover {
-            border-color: #4f46e5;
-            background: #eef2ff;
-        }
-        
-        .upload-text {
-            font-size: 1.1rem;
-            color: #6b7280;
-            margin-bottom: 8px;
-        }
-        
-        .upload-subtext {
-            color: #9ca3af;
-            font-size: 0.9rem;
-        }
-        
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            font-weight: 500;
-            transition: all 0.2s;
-            margin: 5px;
-        }
-        
-        .btn-primary {
-            background: #4f46e5;
-            color: white;
-        }
-        
-        .btn-primary:hover {
-            background: #4338ca;
-            transform: translateY(-1px);
-        }
-        
-        .btn-secondary {
-            background: #e5e7eb;
-            color: #374151;
-        }
-        
-        .btn-secondary:hover { background: #d1d5db; }
-        
-        .controls {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-            align-items: center;
-        }
-        
-        .select-group {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        select {
-            padding: 8px 12px;
-            border: 2px solid #e5e7eb;
-            border-radius: 6px;
-            background: white;
-            min-width: 120px;
-        }
-        
-        select:focus {
-            outline: none;
-            border-color: #4f46e5;
-        }
-        
-        .column-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 12px;
-            margin-top: 15px;
-        }
-        
-        .column-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px;
-            background: #f8fafc;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .column-item:hover {
-            background: #f1f5f9;
-        }
-        
-        .column-checkbox {
-            accent-color: #4f46e5;
-        }
-        
-        .column-label {
-            cursor: pointer;
-            color: #374151;
-            font-weight: 500;
-        }
-        
-        .table-container {
-            overflow-x: auto;
-            border: 1px solid #e5e7eb;
-            border-radius: 8px;
-            background: white;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-        }
-        
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #f3f4f6;
-        }
-        
-        th {
-            background: #f8fafc;
-            font-weight: 600;
-            color: #374151;
-            position: sticky;
-            top: 0;
-        }
-        
-        tr:hover { background: #f9fafb; }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-        
-        .stat-card {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        
-        .stat-label {
-            opacity: 0.9;
-            font-size: 0.85rem;
-        }
-        
-        .chart-container {
-            position: relative;
-            height: 350px;
-            margin: 20px 0;
-        }
-        
-        .loading {
-            display: none;
-            text-align: center;
-            padding: 20px;
-            color: #6b7280;
-        }
-        
-        .spinner {
-            border: 3px solid #f3f4f6;
-            border-top: 3px solid #4f46e5;
-            border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .hidden { display: none !important; }
-        
-        .error {
-            background: #fee2e2;
-            color: #dc2626;
-            padding: 12px;
-            border-radius: 6px;
-            margin-top: 10px;
-            border: 1px solid #fecaca;
-        }
-        
-        .insights-list {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .insights-list li {
-            background: #f0f9ff;
-            border-left: 4px solid #0ea5e9;
-            padding: 12px;
-            margin-bottom: 8px;
-            border-radius: 0 6px 6px 0;
-        }
-        
-        .footer {
-            background: linear-gradient(135deg, #1f2937, #374151);
-            color: white;
-            text-align: center;
-            padding: 25px 30px;
-            margin-top: 0;
-        }
-        
-        .footer-content p {
-            margin: 5px 0;
-            font-size: 0.95rem;
-        }
-        
-        .footer-content p:first-child {
-            font-size: 1.1rem;
-            font-weight: 600;
-        }
-        
-        .footer-content strong {
-            color: #fbbf24;
-            font-weight: 700;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DataLens — Advanced Analysis Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0f14;
+  --surface: #13161e;
+  --surface2: #1a1e2a;
+  --surface3: #20253a;
+  --border: #ffffff0f;
+  --border2: #ffffff18;
+  --accent: #6ee7b7;
+  --accent2: #818cf8;
+  --accent3: #f472b6;
+  --accent4: #fb923c;
+  --text: #e8ecf4;
+  --text2: #8b93a7;
+  --text3: #4f566b;
+  --danger: #f87171;
+  --success: #6ee7b7;
+  --radius: 12px;
+  --font-display: 'Syne', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+ 
+*{margin:0;padding:0;box-sizing:border-box}
+ 
+html{scroll-behavior:smooth}
+ 
+body{
+  font-family:var(--font-body);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+ 
+/* ─── Noise overlay ─── */
+body::before{
+  content:'';
+  position:fixed;inset:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events:none;z-index:0;opacity:.5;
+}
+ 
+/* ─── Sidebar ─── */
+.sidebar{
+  position:fixed;left:0;top:0;bottom:0;
+  width:240px;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  display:flex;flex-direction:column;
+  z-index:100;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+ 
+.logo{
+  padding:24px 20px 20px;
+  border-bottom:1px solid var(--border);
+}
+.logo-mark{
+  font-family:var(--font-display);
+  font-size:1.4rem;
+  font-weight:800;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  letter-spacing:-0.5px;
+}
+.logo-sub{
+  font-size:.7rem;
+  color:var(--text3);
+  font-family:var(--font-mono);
+  text-transform:uppercase;
+  letter-spacing:2px;
+  margin-top:2px;
+}
+ 
+.nav{
+  padding:16px 12px;
+  flex:1;
+  overflow-y:auto;
+}
+ 
+.nav-section-label{
+  font-size:.65rem;
+  color:var(--text3);
+  font-family:var(--font-mono);
+  text-transform:uppercase;
+  letter-spacing:2px;
+  padding:0 8px;
+  margin:12px 0 6px;
+}
+ 
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 12px;
+  border-radius:8px;
+  cursor:pointer;
+  transition:all .15s;
+  font-size:.88rem;
+  color:var(--text2);
+  font-weight:500;
+  position:relative;
+  margin-bottom:2px;
+}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--surface3);color:var(--accent)}
+.nav-item.active::before{
+  content:'';
+  position:absolute;left:0;top:50%;transform:translateY(-50%);
+  width:3px;height:60%;
+  background:var(--accent);
+  border-radius:0 4px 4px 0;
+}
+.nav-icon{width:18px;height:18px;flex-shrink:0}
+ 
+.nav-badge{
+  margin-left:auto;
+  background:var(--surface3);
+  color:var(--text3);
+  font-family:var(--font-mono);
+  font-size:.65rem;
+  padding:2px 6px;
+  border-radius:20px;
+}
+.nav-item.active .nav-badge{background:rgba(110,231,183,.15);color:var(--accent)}
+ 
+.sidebar-footer{
+  padding:16px;
+  border-top:1px solid var(--border);
+}
+.creator-tag{
+  font-size:.75rem;
+  color:var(--text3);
+  font-family:var(--font-mono);
+}
+.creator-tag strong{color:var(--accent2)}
+ 
+/* ─── Main ─── */
+.main{
+  margin-left:240px;
+  min-height:100vh;
+  display:flex;flex-direction:column;
+}
+ 
+.topbar{
+  position:sticky;top:0;
+  background:rgba(13,15,20,.85);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--border);
+  padding:0 28px;
+  height:58px;
+  display:flex;align-items:center;justify-content:space-between;
+  z-index:90;
+}
+.topbar-left{display:flex;align-items:center;gap:12px}
+.breadcrumb{font-size:.85rem;color:var(--text2);font-family:var(--font-mono)}
+.breadcrumb span{color:var(--accent)}
+ 
+.topbar-right{display:flex;align-items:center;gap:8px}
+ 
+.status-pill{
+  display:flex;align-items:center;gap:6px;
+  padding:5px 12px;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:20px;
+  font-size:.8rem;
+  color:var(--text2);
+  font-family:var(--font-mono);
+}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--text3)}
+.status-dot.active{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+ 
+/* ─── Content ─── */
+.content{
+  padding:28px;
+  flex:1;
+}
+ 
+/* ─── Panel (section card) ─── */
+.panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  margin-bottom:20px;
+  transition:border-color .2s;
+}
+.panel:hover{border-color:var(--border2)}
+ 
+.panel-header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 20px;
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(135deg,var(--surface),var(--surface2));
+}
+.panel-title{
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--font-display);
+  font-size:.95rem;
+  font-weight:700;
+  color:var(--text);
+}
+.panel-icon{
+  width:28px;height:28px;
+  background:rgba(110,231,183,.1);
+  border:1px solid rgba(110,231,183,.2);
+  border-radius:7px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.85rem;
+}
+.panel-body{padding:20px}
+.panel-actions{display:flex;gap:8px}
+ 
+/* ─── Upload Zone ─── */
+.upload-zone{
+  border:2px dashed var(--border2);
+  border-radius:var(--radius);
+  padding:48px 24px;
+  text-align:center;
+  cursor:pointer;
+  transition:all .25s;
+  background:var(--surface2);
+  position:relative;
+  overflow:hidden;
+}
+.upload-zone::before{
+  content:'';
+  position:absolute;inset:0;
+  background:radial-gradient(ellipse at 50% 0%,rgba(110,231,183,.05),transparent 60%);
+  opacity:0;
+  transition:opacity .3s;
+}
+.upload-zone:hover{border-color:var(--accent);background:rgba(110,231,183,.04)}
+.upload-zone:hover::before{opacity:1}
+.upload-zone.dragging{border-color:var(--accent);background:rgba(110,231,183,.08)}
+ 
+.upload-icon{
+  font-size:3rem;
+  margin-bottom:16px;
+  display:block;
+  filter:grayscale(.3);
+}
+.upload-title{
+  font-family:var(--font-display);
+  font-size:1.1rem;
+  font-weight:700;
+  margin-bottom:6px;
+}
+.upload-sub{font-size:.85rem;color:var(--text2)}
+.upload-formats{
+  display:inline-flex;gap:6px;
+  margin-top:12px;
+}
+.format-badge{
+  padding:3px 10px;
+  background:var(--surface3);
+  border:1px solid var(--border2);
+  border-radius:4px;
+  font-size:.72rem;
+  font-family:var(--font-mono);
+  color:var(--accent);
+}
+ 
+/* ─── Sheet Selector ─── */
+.sheet-tabs{
+  display:flex;gap:6px;
+  flex-wrap:wrap;
+  padding:14px 20px;
+  background:var(--surface2);
+  border-bottom:1px solid var(--border);
+}
+.sheet-tab{
+  display:flex;align-items:center;gap:7px;
+  padding:7px 14px;
+  border-radius:7px;
+  cursor:pointer;
+  border:1px solid var(--border2);
+  background:var(--surface);
+  color:var(--text2);
+  font-size:.82rem;
+  font-family:var(--font-mono);
+  transition:all .15s;
+}
+.sheet-tab:hover{border-color:var(--accent2);color:var(--text)}
+.sheet-tab.active{background:rgba(129,140,248,.12);border-color:var(--accent2);color:var(--accent2)}
+.sheet-rows{
+  font-size:.68rem;
+  background:var(--surface3);
+  padding:1px 6px;
+  border-radius:3px;
+}
+ 
+/* ─── Column Tags ─── */
+.col-grid{
+  display:flex;flex-wrap:wrap;gap:8px;
+  padding:4px 0;
+}
+.col-tag{
+  display:flex;align-items:center;gap:6px;
+  padding:6px 12px;
+  border-radius:6px;
+  border:1px solid var(--border2);
+  background:var(--surface2);
+  cursor:pointer;
+  transition:all .15s;
+  user-select:none;
+  font-size:.82rem;
+}
+.col-tag:hover{border-color:var(--accent2)}
+.col-tag.selected{background:rgba(129,140,248,.12);border-color:var(--accent2);color:var(--accent2)}
+.col-tag.selected .col-dot{background:var(--accent2)}
+.col-dot{width:7px;height:7px;border-radius:50%;background:var(--text3);transition:background .15s}
+.col-type{
+  font-size:.65rem;
+  font-family:var(--font-mono);
+  padding:1px 5px;
+  border-radius:3px;
+  margin-left:2px;
+}
+.col-type.num{background:rgba(110,231,183,.1);color:var(--accent)}
+.col-type.cat{background:rgba(251,146,60,.1);color:var(--accent4)}
+.col-type.date{background:rgba(244,114,182,.1);color:var(--accent3)}
+ 
+/* ─── Btn ─── */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  padding:8px 16px;
+  border:none;border-radius:7px;
+  cursor:pointer;
+  font-family:var(--font-body);
+  font-size:.85rem;
+  font-weight:500;
+  transition:all .15s;
+  white-space:nowrap;
+}
+.btn-primary{background:var(--accent);color:#0d0f14}
+.btn-primary:hover{background:#5dd5a3;transform:translateY(-1px);box-shadow:0 4px 16px rgba(110,231,183,.3)}
+.btn-ghost{background:var(--surface2);color:var(--text2);border:1px solid var(--border2)}
+.btn-ghost:hover{background:var(--surface3);color:var(--text)}
+.btn-danger{background:rgba(248,113,113,.12);color:var(--danger);border:1px solid rgba(248,113,113,.2)}
+.btn-danger:hover{background:rgba(248,113,113,.2)}
+.btn-sm{padding:5px 12px;font-size:.78rem}
+.btn-accent2{background:rgba(129,140,248,.15);color:var(--accent2);border:1px solid rgba(129,140,248,.25)}
+.btn-accent2:hover{background:rgba(129,140,248,.25)}
+ 
+/* ─── Controls row ─── */
+.ctrl-row{
+  display:flex;align-items:center;gap:10px;
+  flex-wrap:wrap;
+}
+.ctrl-group{
+  display:flex;align-items:center;gap:8px;
+}
+.ctrl-label{font-size:.8rem;color:var(--text2);font-family:var(--font-mono)}
+ 
+select,.input{
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:7px;
+  color:var(--text);
+  padding:7px 12px;
+  font-family:var(--font-body);
+  font-size:.85rem;
+  outline:none;
+  transition:border-color .15s;
+}
+select:focus,.input:focus{border-color:var(--accent2)}
+select option{background:var(--surface2)}
+ 
+/* ─── Table ─── */
+.tbl-wrap{
+  overflow:auto;
+  max-height:360px;
+  border-radius:8px;
+  border:1px solid var(--border);
+}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead th{
+  position:sticky;top:0;z-index:5;
+  background:var(--surface2);
+  border-bottom:1px solid var(--border2);
+  padding:10px 14px;
+  text-align:left;
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  color:var(--text2);
+  text-transform:uppercase;
+  letter-spacing:.5px;
+  white-space:nowrap;
+  cursor:pointer;
+  user-select:none;
+}
+thead th:hover{color:var(--text)}
+thead th .sort-icon{opacity:.4;margin-left:4px}
+thead th.sort-asc .sort-icon::after{content:'↑';opacity:1}
+thead th.sort-desc .sort-icon::after{content:'↓';opacity:1}
+tbody tr{transition:background .1s;border-bottom:1px solid var(--border)}
+tbody tr:hover{background:var(--surface2)}
+td{
+  padding:9px 14px;
+  color:var(--text);
+  white-space:nowrap;
+  max-width:200px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+td.num-cell{
+  font-family:var(--font-mono);
+  color:var(--accent);
+  text-align:right;
+}
+td.null-cell{color:var(--text3);font-style:italic;font-size:.75rem}
+ 
+/* ─── Stats grid ─── */
+.stats-kpi-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+  gap:12px;
+  margin-bottom:16px;
+}
+.kpi-card{
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:10px;
+  padding:16px;
+  position:relative;
+  overflow:hidden;
+}
+.kpi-card::before{
+  content:'';
+  position:absolute;top:0;left:0;right:0;
+  height:2px;
+  background:var(--accent-color,var(--accent));
+  opacity:.7;
+}
+.kpi-val{
+  font-family:var(--font-mono);
+  font-size:1.4rem;
+  font-weight:500;
+  color:var(--text);
+  margin-bottom:4px;
+}
+.kpi-name{font-size:.72rem;color:var(--text3);font-family:var(--font-mono);text-transform:uppercase;letter-spacing:1px}
+ 
+.col-stat-block{
+  border:1px solid var(--border);
+  border-radius:10px;
+  margin-bottom:14px;
+  overflow:hidden;
+}
+.col-stat-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;
+  background:var(--surface2);
+  border-bottom:1px solid var(--border);
+}
+.col-stat-name{
+  font-family:var(--font-display);
+  font-size:.9rem;
+  font-weight:700;
+}
+.col-stat-body{padding:14px 16px}
+ 
+/* Histogram bar */
+.mini-hist{display:flex;align-items:flex-end;gap:2px;height:40px;margin-top:10px}
+.hist-bar{
+  flex:1;
+  background:linear-gradient(to top,var(--accent2),var(--accent));
+  border-radius:2px 2px 0 0;
+  min-height:2px;
+  opacity:.7;
+  transition:opacity .2s;
+}
+.hist-bar:hover{opacity:1}
+ 
+/* ─── Chart container ─── */
+.chart-wrap{
+  position:relative;
+  height:340px;
+  background:var(--surface2);
+  border-radius:10px;
+  padding:16px;
+  margin-top:14px;
+}
+.chart-empty{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  color:var(--text3);gap:8px;
+  font-size:.9rem;
+}
+ 
+/* ─── Pivot ─── */
+.pivot-controls{
+  background:var(--surface2);
+  border-radius:10px;
+  padding:16px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+  margin-bottom:16px;
+  border:1px solid var(--border);
+}
+ 
+/* ─── Insights ─── */
+.insight-list{list-style:none;display:flex;flex-direction:column;gap:8px}
+.insight-item{
+  display:flex;align-items:flex-start;gap:12px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-left:3px solid var(--accent-color,var(--accent));
+  border-radius:0 8px 8px 0;
+  padding:12px 14px;
+  font-size:.88rem;
+  color:var(--text2);
+  animation:slideIn .3s ease forwards;
+  opacity:0;
+  transform:translateX(-8px);
+}
+@keyframes slideIn{to{opacity:1;transform:none}}
+.insight-icon{font-size:1.1rem;flex-shrink:0;margin-top:-1px}
+ 
+/* ─── Progress bar (completeness) ─── */
+.progress-bar{
+  height:5px;
+  background:var(--surface3);
+  border-radius:3px;
+  overflow:hidden;
+  margin-top:6px;
+}
+.progress-fill{
+  height:100%;
+  border-radius:3px;
+  transition:width .6s cubic-bezier(.4,0,.2,1);
+}
+ 
+/* ─── Correlation heatmap ─── */
+.heatmap-grid{
+  display:grid;
+  gap:2px;
+  overflow-x:auto;
+}
+.heatmap-cell{
+  width:44px;height:44px;
+  border-radius:4px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:.65rem;
+  font-family:var(--font-mono);
+  font-weight:500;
+  cursor:default;
+  transition:transform .15s;
+}
+.heatmap-cell:hover{transform:scale(1.15);z-index:5;position:relative}
+.heatmap-label{
+  font-size:.7rem;
+  font-family:var(--font-mono);
+  color:var(--text2);
+  display:flex;align-items:center;justify-content:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+ 
+/* ─── Export section ─── */
+.export-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:12px;
+}
+.export-card{
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:10px;
+  padding:18px;
+  text-align:center;
+  cursor:pointer;
+  transition:all .2s;
+}
+.export-card:hover{
+  border-color:var(--accent);
+  background:rgba(110,231,183,.05);
+  transform:translateY(-2px);
+}
+.export-card-icon{font-size:2rem;margin-bottom:10px}
+.export-card-title{font-weight:600;font-size:.9rem;margin-bottom:4px}
+.export-card-sub{font-size:.75rem;color:var(--text3)}
+ 
+/* ─── Loading / Error ─── */
+.loading-overlay{
+  display:none;
+  position:fixed;inset:0;z-index:999;
+  background:rgba(13,15,20,.8);
+  backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;
+  flex-direction:column;gap:12px;
+}
+.loading-overlay.show{display:flex}
+.spinner{
+  width:36px;height:36px;
+  border:2px solid var(--surface3);
+  border-top-color:var(--accent);
+  border-radius:50%;
+  animation:spin 0.7s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-text{font-family:var(--font-mono);font-size:.85rem;color:var(--text2)}
+ 
+.alert{
+  display:flex;align-items:center;gap:10px;
+  padding:12px 16px;
+  border-radius:8px;
+  font-size:.85rem;
+  margin-bottom:16px;
+}
+.alert-error{background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.25);color:var(--danger)}
+.alert-info{background:rgba(129,140,248,.1);border:1px solid rgba(129,140,248,.2);color:var(--accent2)}
+.alert-success{background:rgba(110,231,183,.1);border:1px solid rgba(110,231,183,.2);color:var(--accent)}
+ 
+/* ─── Search input ─── */
+.search-input{
+  display:flex;align-items:center;gap:8px;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:7px;
+  padding:7px 12px;
+}
+.search-input input{
+  background:none;border:none;outline:none;
+  color:var(--text);font-family:var(--font-body);font-size:.85rem;
+  width:160px;
+}
+.search-input input::placeholder{color:var(--text3)}
+ 
+/* ─── Page sections (show/hide) ─── */
+.page{display:none}
+.page.active{display:block}
+ 
+/* ─── Row count badge ─── */
+.row-badge{
+  padding:4px 10px;
+  background:var(--surface3);
+  border-radius:4px;
+  font-family:var(--font-mono);
+  font-size:.72rem;
+  color:var(--text3);
+}
+.row-badge span{color:var(--accent)}
+ 
+/* ─── Responsive ─── */
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%)}
+  .main{margin-left:0}
+}
+ 
+/* ─── Scrollbar ─── */
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+ 
+/* ─── Divider ─── */
+.divider{height:1px;background:var(--border);margin:16px 0}
+ 
+/* ─── Tooltip ─── */
+[data-tip]{position:relative}
+[data-tip]::after{
+  content:attr(data-tip);
+  position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);
+  background:var(--surface3);
+  color:var(--text);
+  font-size:.72rem;
+  padding:4px 8px;
+  border-radius:5px;
+  white-space:nowrap;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity .15s;
+  z-index:200;
+}
+[data-tip]:hover::after{opacity:1}
+ 
+/* ─── Animations ─── */
+.fade-in{animation:fadeIn .3s ease forwards}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+ 
+.tag-row{display:flex;flex-wrap:wrap;gap:6px}
+.tag{
+  padding:4px 10px;
+  border-radius:4px;
+  font-size:.75rem;
+  font-family:var(--font-mono);
+  background:var(--surface3);
+  color:var(--text2);
+  border:1px solid var(--border2);
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>📊 Descriptive Analysis Dashboard</h1>
-            <p>Upload your data and get comprehensive statistical insights</p>
-        </div>
-        
-        <div class="main-content">
-            <!-- Upload Section -->
-            <div class="section">
-                <h2 class="section-title">1. Upload Data File</h2>
-                <div class="file-upload" id="fileUpload">
-                    <div class="upload-text">📁 Click to upload or drag & drop</div>
-                    <div class="upload-subtext">CSV or Excel files (.csv, .xlsx, .xls)</div>
-                </div>
-                <input type="file" id="fileInput" style="display: none;" accept=".csv,.xlsx,.xls">
-                <div class="loading" id="loading">
-                    <div class="spinner"></div>
-                    <div>Processing file...</div>
-                </div>
-                <div id="error"></div>
-            </div>
-            
-            <!-- Column Selection -->
-            <div class="section hidden" id="columnSection">
-                <h2 class="section-title">2. Select Columns</h2>
-                <div class="controls">
-                    <button class="btn btn-secondary" id="selectAll">Select All</button>
-                    <button class="btn btn-secondary" id="selectNone">Select None</button>
-                    <div class="select-group">
-                        <label>Show rows:</label>
-                        <select id="rowLimit">
-                            <option value="100">100</option>
-                            <option value="500">500</option>
-                            <option value="1000">1000</option>
-                            <option value="all">All</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="columnGrid" class="column-grid"></div>
-            </div>
-            
-            <!-- Data Preview -->
-            <div class="section hidden" id="dataSection">
-                <h2 class="section-title">3. Data Preview</h2>
-                <div class="table-container" id="tableContainer"></div>
-            </div>
-            
-            <!-- Pivot Analysis -->
-            <div class="section hidden" id="pivotSection">
-                <h2 class="section-title">4. Pivot Analysis</h2>
-                <div class="controls">
-                    <div class="select-group">
-                        <label>Group by:</label>
-                        <select id="pivotGroup">
-                            <option value="">Select column</option>
-                        </select>
-                    </div>
-                    <div class="select-group">
-                        <label>Value:</label>
-                        <select id="pivotValue">
-                            <option value="">Select column</option>
-                        </select>
-                    </div>
-                    <div class="select-group">
-                        <label>Operation:</label>
-                        <select id="pivotOp">
-                            <option value="sum">Sum</option>
-                            <option value="avg">Average</option>
-                            <option value="count">Count</option>
-                            <option value="distinct">Distinct</option>
-                            <option value="median">Median</option>
-                            <option value="min">Min</option>
-                            <option value="max">Max</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" id="generatePivot">Generate</button>
-                </div>
-                <div class="table-container hidden" id="pivotTable"></div>
-            </div>
-            
-            <!-- Statistics -->
-            <div class="section hidden" id="statsSection">
-                <h2 class="section-title">5. Descriptive Statistics</h2>
-                <div id="statsContainer"></div>
-            </div>
-            
-            <!-- Charts -->
-            <div class="section hidden" id="chartSection">
-                <h2 class="section-title">6. Data Visualization</h2>
-                <div class="controls">
-                    <div class="select-group">
-                        <label>Chart Type:</label>
-                        <select id="chartType">
-                            <option value="column-comparison">Bar Chart</option>
-                            <option value="distribution">Pie Chart</option>
-                            <option value="correlation">Data Quality</option>
-                            <option value="summary">Summary</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" id="generateChart">Generate Chart</button>
-                    <div style="font-size: 0.85rem; color: #6b7280; margin-left: 10px;">
-                        💡 Bar/Pie charts use pivot data when available
-                    </div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="mainChart"></canvas>
-                </div>
-            </div>
-            
-            <!-- Insights -->
-            <div class="section hidden" id="insightsSection">
-                <h2 class="section-title">7. Data Insights</h2>
-                <ul id="insights" class="insights-list"></ul>
-            </div>
-            
-            <!-- Export Section -->
-            <div class="section hidden" id="exportSection">
-                <h2 class="section-title">8. Export Analysis</h2>
-                <div class="controls">
-                    <button class="btn btn-primary" id="exportExcel">📊 Export to Excel</button>
-                    <button class="btn btn-primary" id="exportCSV">📄 Export to CSV</button>
-                    <button class="btn btn-secondary" id="exportReport">📋 Export Full Report</button>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Footer -->
-        <div class="footer">
-            <div class="footer-content">
-                <p>⚡ Created by <strong>Bala Excel Insights</strong> | Advanced Data Analytics Dashboard</p>
-                <p>💡 Transform your data into actionable insights with powerful statistical analysis</p>
-            </div>
-        </div>
+ 
+<!-- Loading overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Processing file…</div>
+</div>
+ 
+<!-- ─── SIDEBAR ─── -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">DataLens</div>
+    <div class="logo-sub">Analytics Studio</div>
+  </div>
+  <nav class="nav">
+    <div class="nav-section-label">Workspace</div>
+    <div class="nav-item active" data-page="upload" onclick="showPage('upload',this)">
+      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M12 12V4m0 0l-3 3m3-3l3 3"/></svg>
+      Import Data
     </div>
-
-    <script>
-        // Global variables
-        let rawData = [];
-        let filteredData = [];
-        let selectedColumns = [];
-        let currentChart = null;
-        
-        // Initialize
-        document.addEventListener('DOMContentLoaded', init);
-        
-        function init() {
-            setupFileUpload();
-            setupEventListeners();
-        }
-        
-        function setupFileUpload() {
-            const fileUpload = document.getElementById('fileUpload');
-            const fileInput = document.getElementById('fileInput');
-            
-            // Click to upload
-            fileUpload.onclick = () => fileInput.click();
-            
-            // File input change
-            fileInput.onchange = (e) => {
-                if (e.target.files[0]) {
-                    processFile(e.target.files[0]);
-                }
-            };
-            
-            // Drag and drop
-            fileUpload.ondragover = (e) => {
-                e.preventDefault();
-                fileUpload.classList.add('dragover');
-            };
-            
-            fileUpload.ondragleave = () => {
-                fileUpload.classList.remove('dragover');
-            };
-            
-            fileUpload.ondrop = (e) => {
-                e.preventDefault();
-                fileUpload.classList.remove('dragover');
-                if (e.dataTransfer.files[0]) {
-                    processFile(e.dataTransfer.files[0]);
-                }
-            };
-        }
-        
-        function setupEventListeners() {
-            document.getElementById('selectAll').onclick = selectAllColumns;
-            document.getElementById('selectNone').onclick = selectNoneColumns;
-            document.getElementById('rowLimit').onchange = updateDataView;
-            document.getElementById('generatePivot').onclick = generatePivot;
-            document.getElementById('generateChart').onclick = generateMeaningfulChart;
-            document.getElementById('exportExcel').onclick = exportToExcel;
-            document.getElementById('exportCSV').onclick = exportToCSV;
-            document.getElementById('exportReport').onclick = exportFullReport;
-        }
-        
-        function showLoading() {
-            document.getElementById('loading').style.display = 'block';
-        }
-        
-        function hideLoading() {
-            document.getElementById('loading').style.display = 'none';
-        }
-        
-        function showError(message) {
-            document.getElementById('error').innerHTML = `<div class="error">${message}</div>`;
-        }
-        
-        function clearError() {
-            document.getElementById('error').innerHTML = '';
-        }
-        
-        function processFile(file) {
-            showLoading();
-            clearError();
-            
-            const ext = file.name.split('.').pop().toLowerCase();
-            console.log('Processing file:', file.name, 'Type:', ext);
-            
-            if (ext === 'csv') {
-                processCSV(file);
-            } else if (ext === 'xlsx' || ext === 'xls') {
-                processExcel(file);
-            } else {
-                showError('Please upload a CSV or Excel file');
-                hideLoading();
-            }
-        }
-        
-        function processCSV(file) {
-            Papa.parse(file, {
-                header: true,
-                skipEmptyLines: true,
-                dynamicTyping: true,
-                complete: function(results) {
-                    console.log('CSV parsed:', results.data.length, 'rows');
-                    rawData = results.data;
-                    setupColumns();
-                    hideLoading();
-                },
-                error: function(error) {
-                    console.error('CSV error:', error);
-                    showError('Error parsing CSV: ' + error.message);
-                    hideLoading();
-                }
-            });
-        }
-        
-        function processExcel(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const data = new Uint8Array(e.target.result);
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const sheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[sheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
-                    
-                    console.log('Excel parsed:', jsonData.length, 'rows');
-                    rawData = jsonData;
-                    setupColumns();
-                    hideLoading();
-                } catch (error) {
-                    console.error('Excel error:', error);
-                    showError('Error parsing Excel: ' + error.message);
-                    hideLoading();
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        }
-        
-        function setupColumns() {
-            if (!rawData || rawData.length === 0) {
-                showError('No data found in file');
-                return;
-            }
-            
-            const columns = Object.keys(rawData[0]);
-            selectedColumns = [...columns];
-            
-            console.log('Columns:', columns);
-            
-            // Setup column checkboxes
-            const grid = document.getElementById('columnGrid');
-            grid.innerHTML = '';
-            
-            columns.forEach(col => {
-                const div = document.createElement('div');
-                div.className = 'column-item';
-                div.innerHTML = `
-                    <input type="checkbox" class="column-checkbox" value="${col}" checked>
-                    <label class="column-label">${col}</label>
-                `;
-                grid.appendChild(div);
-            });
-            
-            // Add event listeners to checkboxes
-            document.querySelectorAll('.column-checkbox').forEach(cb => {
-                cb.onchange = updateColumnSelection;
-            });
-            
-            // Setup dropdowns
-            setupDropdowns(columns);
-            
-            // Show sections and update data
-            document.getElementById('columnSection').classList.remove('hidden');
-            updateDataView();
-            generateStats();
-            generateInsights();
-            generateCharts();
-        }
-        
-        function setupDropdowns(columns) {
-            const selects = ['pivotGroup', 'pivotValue'];
-            selects.forEach(id => {
-                const select = document.getElementById(id);
-                select.innerHTML = '<option value="">Select column</option>';
-                columns.forEach(col => {
-                    select.innerHTML += `<option value="${col}">${col}</option>`;
-                });
-            });
-        }
-        
-        function selectAllColumns() {
-            document.querySelectorAll('.column-checkbox').forEach(cb => {
-                cb.checked = true;
-            });
-            updateColumnSelection();
-        }
-        
-        function selectNoneColumns() {
-            document.querySelectorAll('.column-checkbox').forEach(cb => {
-                cb.checked = false;
-            });
-            updateColumnSelection();
-        }
-        
-        function updateColumnSelection() {
-            selectedColumns = [];
-            document.querySelectorAll('.column-checkbox:checked').forEach(cb => {
-                selectedColumns.push(cb.value);
-            });
-            console.log('Selected columns:', selectedColumns);
-            updateDataView();
-            generateStats();
-        }
-        
-        function updateDataView() {
-            if (selectedColumns.length === 0) {
-                document.getElementById('dataSection').classList.add('hidden');
-                return;
-            }
-            
-            const limit = document.getElementById('rowLimit').value;
-            const maxRows = limit === 'all' ? rawData.length : parseInt(limit);
-            
-            filteredData = rawData.slice(0, maxRows).map(row => {
-                const newRow = {};
-                selectedColumns.forEach(col => {
-                    newRow[col] = row[col];
-                });
-                return newRow;
-            });
-            
-            renderTable();
-            
-            // Show other sections
-            ['dataSection', 'pivotSection', 'statsSection', 'chartSection', 'insightsSection', 'exportSection']
-                .forEach(id => document.getElementById(id).classList.remove('hidden'));
-        }
-        
-        function renderTable() {
-            const container = document.getElementById('tableContainer');
-            
-            let html = '<table><thead><tr>';
-            selectedColumns.forEach(col => {
-                html += `<th>${col}</th>`;
-            });
-            html += '</tr></thead><tbody>';
-            
-            filteredData.forEach(row => {
-                html += '<tr>';
-                selectedColumns.forEach(col => {
-                    const value = row[col] !== undefined && row[col] !== null ? row[col] : '';
-                    html += `<td>${value}</td>`;
-                });
-                html += '</tr>';
-            });
-            
-            html += '</tbody></table>';
-            container.innerHTML = html;
-        }
-        
-        function generatePivot() {
-            const groupCol = document.getElementById('pivotGroup').value;
-            const valueCol = document.getElementById('pivotValue').value;
-            const operation = document.getElementById('pivotOp').value;
-            
-            if (!groupCol || !valueCol) {
-                alert('Please select both group and value columns');
-                return;
-            }
-            
-            const groups = {};
-            filteredData.forEach(row => {
-                const key = row[groupCol];
-                if (!groups[key]) groups[key] = [];
-                groups[key].push(row[valueCol]);
-            });
-            
-            const pivotData = [];
-            Object.entries(groups).forEach(([key, values]) => {
-                const numValues = values.filter(v => v != null && !isNaN(v)).map(Number);
-                let result = 0;
-                
-                switch(operation) {
-                    case 'sum': result = numValues.reduce((a, b) => a + b, 0); break;
-                    case 'avg': result = numValues.length ? numValues.reduce((a, b) => a + b, 0) / numValues.length : 0; break;
-                    case 'count': result = values.length; break;
-                    case 'distinct': result = new Set(values).size; break;
-                    case 'median': 
-                        const sorted = numValues.sort((a, b) => a - b);
-                        const mid = Math.floor(sorted.length / 2);
-                        result = sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-                        break;
-                    case 'min': result = numValues.length ? Math.min(...numValues) : 0; break;
-                    case 'max': result = numValues.length ? Math.max(...numValues) : 0; break;
-                }
-                
-                pivotData.push({
-                    [groupCol]: key,
-                    [`${operation}(${valueCol})`]: parseFloat(result.toFixed(2))
-                });
-            });
-            
-            renderPivotTable(pivotData);
-            generateInsights(); // Update insights after pivot
-        }
-        
-        function renderPivotTable(data) {
-            if (data.length === 0) return;
-            
-            const container = document.getElementById('pivotTable');
-            const columns = Object.keys(data[0]);
-            
-            let html = '<table><thead><tr>';
-            columns.forEach(col => html += `<th>${col}</th>`);
-            html += '</tr></thead><tbody>';
-            
-            data.forEach(row => {
-                html += '<tr>';
-                columns.forEach(col => {
-                    html += `<td>${row[col]}</td>`;
-                });
-                html += '</tr>';
-            });
-            
-            html += '</tbody></table>';
-            container.innerHTML = html;
-            container.classList.remove('hidden');
-        }
-        
-        function generateStats() {
-            const container = document.getElementById('statsContainer');
-            container.innerHTML = '';
-            
-            selectedColumns.forEach(col => {
-                const values = filteredData.map(row => row[col]).filter(v => v != null);
-                const numValues = values.filter(v => !isNaN(v)).map(Number);
-                
-                const div = document.createElement('div');
-                div.innerHTML = `<h3 style="margin: 20px 0 10px 0; color: #374151;">${col}</h3>`;
-                
-                if (numValues.length > 0) {
-                    const stats = calculateStats(numValues);
-                    const statsGrid = document.createElement('div');
-                    statsGrid.className = 'stats-grid';
-                    statsGrid.innerHTML = `
-                        <div class="stat-card"><div class="stat-value">${stats.count}</div><div class="stat-label">Count</div></div>
-                        <div class="stat-card"><div class="stat-value">${stats.mean}</div><div class="stat-label">Mean</div></div>
-                        <div class="stat-card"><div class="stat-value">${stats.median}</div><div class="stat-label">Median</div></div>
-                        <div class="stat-card"><div class="stat-value">${stats.std}</div><div class="stat-label">Std Dev</div></div>
-                        <div class="stat-card"><div class="stat-value">${stats.min}</div><div class="stat-label">Min</div></div>
-                        <div class="stat-card"><div class="stat-value">${stats.max}</div><div class="stat-label">Max</div></div>
-                    `;
-                    div.appendChild(statsGrid);
-                } else {
-                    const unique = new Set(values).size;
-                    const statsGrid = document.createElement('div');
-                    statsGrid.className = 'stats-grid';
-                    statsGrid.innerHTML = `
-                        <div class="stat-card"><div class="stat-value">${values.length}</div><div class="stat-label">Count</div></div>
-                        <div class="stat-card"><div class="stat-value">${unique}</div><div class="stat-label">Unique</div></div>
-                    `;
-                    div.appendChild(statsGrid);
-                }
-                
-                container.appendChild(div);
-            });
-        }
-        
-        function calculateStats(values) {
-            const sorted = values.sort((a, b) => a - b);
-            const count = values.length;
-            const sum = values.reduce((a, b) => a + b, 0);
-            const mean = sum / count;
-            
-            const mid = Math.floor(count / 2);
-            const median = count % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-            
-            const variance = values.reduce((acc, val) => acc + Math.pow(val - mean, 2), 0) / count;
-            const std = Math.sqrt(variance);
-            
-            return {
-                count,
-                mean: mean.toFixed(2),
-                median: median.toFixed(2),
-                std: std.toFixed(2),
-                min: Math.min(...values).toFixed(2),
-                max: Math.max(...values).toFixed(2)
-            };
-        }
-        
-        function generateMeaningfulChart() {
-            const chartType = document.getElementById('chartType').value;
-            const canvas = document.getElementById('mainChart');
-            const ctx = canvas.getContext('2d');
-            
-            // Destroy existing chart
-            if (currentChart) {
-                currentChart.destroy();
-            }
-            
-            // Check if pivot data is available
-            const pivotTable = document.getElementById('pivotTable');
-            const hasPivotData = !pivotTable.classList.contains('hidden') && pivotTable.querySelector('table');
-            
-            if (hasPivotData && (chartType === 'column-comparison' || chartType === 'distribution')) {
-                generatePivotChart(ctx, chartType);
-            } else {
-                switch(chartType) {
-                    case 'column-comparison':
-                        generateColumnComparisonChart(ctx);
-                        break;
-                    case 'correlation':
-                        generateCorrelationChart(ctx);
-                        break;
-                    case 'distribution':
-                        generateDistributionChart(ctx);
-                        break;
-                    case 'summary':
-                        generateSummaryChart(ctx);
-                        break;
-                }
-            }
-        }
-        
-        function generatePivotChart(ctx, chartType) {
-            const pivotTable = document.getElementById('pivotTable');
-            const table = pivotTable.querySelector('table');
-            
-            if (!table) return;
-            
-            // Extract pivot data
-            const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.textContent.trim());
-            const rows = Array.from(table.querySelectorAll('tbody tr'));
-            
-            const pivotData = rows.map(row => {
-                const cells = Array.from(row.querySelectorAll('td'));
-                const rowData = {};
-                headers.forEach((header, index) => {
-                    rowData[header] = cells[index]?.textContent.trim() || '';
-                });
-                return rowData;
-            }).slice(0, 15); // Limit to top 15 for better visualization
-            
-            if (pivotData.length === 0) return;
-            
-            const groupColumn = headers[0];
-            const valueColumn = headers[1];
-            
-            if (chartType === 'column-comparison') {
-                currentChart = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: pivotData.map(row => {
-                            const label = row[groupColumn];
-                            return String(label).length > 12 ? String(label).substring(0, 12) + '...' : label;
-                        }),
-                        datasets: [{
-                            label: valueColumn,
-                            data: pivotData.map(row => parseFloat(row[valueColumn]) || 0),
-                            backgroundColor: 'rgba(79, 70, 229, 0.7)',
-                            borderColor: 'rgba(79, 70, 229, 1)',
-                            borderWidth: 2,
-                            borderRadius: 4
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: `${valueColumn} by ${groupColumn}`,
-                                font: { size: 16, weight: 'bold' }
-                            },
-                            legend: { display: false }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                title: { display: true, text: valueColumn },
-                                grid: { color: 'rgba(0,0,0,0.1)' }
-                            },
-                            x: {
-                                title: { display: true, text: groupColumn },
-                                grid: { display: false }
-                            }
-                        }
-                    }
-                });
-            } else if (chartType === 'distribution') {
-                currentChart = new Chart(ctx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: pivotData.map(row => {
-                            const label = row[groupColumn];
-                            return String(label).length > 15 ? String(label).substring(0, 15) + '...' : label;
-                        }),
-                        datasets: [{
-                            data: pivotData.map(row => parseFloat(row[valueColumn]) || 0),
-                            backgroundColor: pivotData.map((_, i) => 
-                                `hsl(${(i * 360 / pivotData.length) + 200}, 70%, 65%)`
-                            ),
-                            borderWidth: 2,
-                            borderColor: '#fff'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            title: {
-                                display: true,
-                                text: `${valueColumn} Distribution by ${groupColumn}`,
-                                font: { size: 16, weight: 'bold' }
-                            },
-                            legend: {
-                                position: 'right',
-                                labels: { boxWidth: 12, padding: 10 }
-                            }
-                        }
-                    }
-                });
-            }
-        }
-        
-        function generateColumnComparisonChart(ctx) {
-            // Compare numeric columns by their means
-            const numericColumns = [];
-            selectedColumns.forEach(col => {
-                const values = filteredData.map(row => row[col]).filter(v => v != null);
-                const numValues = values.filter(v => !isNaN(v)).map(Number);
-                if (numValues.length > values.length * 0.7 && numValues.length > 0) {
-                    const stats = calculateStats(numValues);
-                    numericColumns.push({
-                        column: col,
-                        mean: parseFloat(stats.mean),
-                        count: numValues.length
-                    });
-                }
-            });
-            
-            if (numericColumns.length === 0) {
-                ctx.fillText('No numeric columns available for comparison', 20, 50);
-                return;
-            }
-            
-            currentChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: numericColumns.map(col => col.column),
-                    datasets: [{
-                        label: 'Average Value',
-                        data: numericColumns.map(col => col.mean),
-                        backgroundColor: 'rgba(79, 70, 229, 0.7)',
-                        borderColor: 'rgba(79, 70, 229, 1)',
-                        borderWidth: 2
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Average Values Comparison Across Numeric Columns'
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: { display: true, text: 'Average Value' }
-                        }
-                    }
-                }
-            });
-        }
-        
-        function generateCorrelationChart(ctx) {
-            // Show data completeness across columns
-            const completenessData = selectedColumns.map(col => {
-                const values = filteredData.map(row => row[col]);
-                const nonEmpty = values.filter(v => v != null && v !== '').length;
-                return {
-                    column: col,
-                    completeness: (nonEmpty / filteredData.length * 100).toFixed(1)
-                };
-            });
-            
-            currentChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: completenessData.map(item => `${item.column} (${item.completeness}%)`),
-                    datasets: [{
-                        data: completenessData.map(item => parseFloat(item.completeness)),
-                        backgroundColor: completenessData.map((_, i) => 
-                            `hsl(${(i * 360 / completenessData.length) + 120}, 70%, 60%)`
-                        )
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Data Completeness by Column'
-                        },
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-        }
-        
-        function generateDistributionChart(ctx) {
-            // Show count of records by the first categorical column
-            const categoricalCol = selectedColumns.find(col => {
-                const values = filteredData.map(row => row[col]).filter(v => v != null);
-                const numValues = values.filter(v => !isNaN(v)).map(Number);
-                return numValues.length <= values.length * 0.7;
-            });
-            
-            if (!categoricalCol) {
-                // If no categorical, show distribution of first numeric column
-                const numericCol = selectedColumns.find(col => {
-                    const values = filteredData.map(row => row[col]).filter(v => v != null);
-                    const numValues = values.filter(v => !isNaN(v)).map(Number);
-                    return numValues.length > values.length * 0.7;
-                });
-                
-                if (numericCol) {
-                    const values = filteredData.map(row => row[numericCol]).filter(v => !isNaN(v)).map(Number);
-                    const min = Math.min(...values);
-                    const max = Math.max(...values);
-                    const binCount = Math.min(10, Math.ceil(Math.sqrt(values.length)));
-                    const binSize = (max - min) / binCount;
-                    
-                    const bins = Array(binCount).fill(0);
-                    const binLabels = [];
-                    
-                    for (let i = 0; i < binCount; i++) {
-                        const binStart = min + (i * binSize);
-                        binLabels.push(binStart.toFixed(1));
-                    }
-                    
-                    values.forEach(value => {
-                        let binIndex = Math.floor((value - min) / binSize);
-                        if (binIndex >= binCount) binIndex = binCount - 1;
-                        bins[binIndex]++;
-                    });
-                    
-                    currentChart = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: binLabels,
-                            datasets: [{
-                                label: 'Frequency',
-                                data: bins,
-                                backgroundColor: 'rgba(34, 197, 94, 0.7)',
-                                borderColor: 'rgba(34, 197, 94, 1)',
-                                borderWidth: 1
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                title: {
-                                    display: true,
-                                    text: `Distribution of ${numericCol}`
-                                }
-                            },
-                            scales: {
-                                y: {
-                                    beginAtZero: true,
-                                    title: { display: true, text: 'Frequency' }
-                                },
-                                x: {
-                                    title: { display: true, text: numericCol }
-                                }
-                            }
-                        }
-                    });
-                }
-                return;
-            }
-            
-            // Show top categories
-            const values = filteredData.map(row => row[categoricalCol]).filter(v => v != null && v !== '');
-            const freq = {};
-            values.forEach(v => {
-                const key = String(v);
-                freq[key] = (freq[key] || 0) + 1;
-            });
-            
-            const sortedEntries = Object.entries(freq)
-                .sort(([,a], [,b]) => b - a)
-                .slice(0, 10);
-            
-            currentChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: sortedEntries.map(([key]) => key.length > 15 ? key.substring(0, 15) + '...' : key),
-                    datasets: [{
-                        label: 'Count',
-                        data: sortedEntries.map(([,count]) => count),
-                        backgroundColor: 'rgba(168, 85, 247, 0.7)',
-                        borderColor: 'rgba(168, 85, 247, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: `Top Categories in ${categoricalCol}`
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            title: { display: true, text: 'Count' }
-                        }
-                    }
-                }
-            });
-        }
-        
-        function generateSummaryChart(ctx) {
-            // Summary of column types and data quality
-            let numericCount = 0;
-            let categoricalCount = 0;
-            let emptyCount = 0;
-            
-            selectedColumns.forEach(col => {
-                const values = filteredData.map(row => row[col]);
-                const nonEmpty = values.filter(v => v != null && v !== '');
-                const numValues = nonEmpty.filter(v => !isNaN(v)).map(Number);
-                
-                emptyCount += values.length - nonEmpty.length;
-                
-                if (numValues.length > nonEmpty.length * 0.7) {
-                    numericCount++;
-                } else {
-                    categoricalCount++;
-                }
-            });
-            
-            const totalCells = filteredData.length * selectedColumns.length;
-            const filledCells = totalCells - emptyCount;
-            
-            currentChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: [
-                        `Numeric Columns (${numericCount})`,
-                        `Categorical Columns (${categoricalCount})`,
-                        `Filled Cells (${((filledCells/totalCells)*100).toFixed(1)}%)`,
-                        `Empty Cells (${((emptyCount/totalCells)*100).toFixed(1)}%)`
-                    ],
-                    datasets: [{
-                        data: [numericCount, categoricalCount, filledCells, emptyCount],
-                        backgroundColor: [
-                            'rgba(79, 70, 229, 0.8)',
-                            'rgba(168, 85, 247, 0.8)',
-                            'rgba(34, 197, 94, 0.8)',
-                            'rgba(239, 68, 68, 0.8)'
-                        ]
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        title: {
-                            display: true,
-                            text: 'Dataset Summary Overview'
-                        },
-                        legend: {
-                            position: 'bottom'
-                        }
-                    }
-                }
-            });
-        }
-        
-        function generateCharts() {
-            // Auto-generate the first meaningful chart
-            generateMeaningfulChart();
-        }
-        
-        function generateInsights() {
-            const insights = [];
-            
-            // Dataset overview
-            insights.push(`📊 Dataset: ${rawData.length} rows × ${Object.keys(rawData[0] || {}).length} columns`);
-            insights.push(`🎯 Analysis: ${selectedColumns.length} columns selected`);
-            
-            // Column type analysis
-            let numericCols = 0;
-            let categoricalCols = 0;
-            let highVarianceCols = [];
-            let lowCardinalityCols = [];
-            let uniqueIdCols = [];
-            
-            selectedColumns.forEach(col => {
-                const values = filteredData.map(row => row[col]).filter(v => v != null && v !== '');
-                const numValues = values.filter(v => !isNaN(v)).map(Number);
-                const unique = new Set(values).size;
-                
-                if (numValues.length > values.length * 0.7 && numValues.length > 0) {
-                    // Numeric column
-                    numericCols++;
-                    const stats = calculateStats(numValues);
-                    if (parseFloat(stats.std) > parseFloat(stats.mean)) {
-                        highVarianceCols.push(col);
-                    }
-                } else {
-                    // Categorical column
-                    categoricalCols++;
-                    if (unique === values.length && values.length > 1) {
-                        uniqueIdCols.push(col);
-                    } else if (unique < values.length * 0.1 && unique < 10) {
-                        lowCardinalityCols.push(col);
-                    }
-                }
-            });
-            
-            // Add type insights
-            if (numericCols > 0) {
-                insights.push(`🔢 ${numericCols} numeric column${numericCols > 1 ? 's' : ''} detected`);
-            }
-            if (categoricalCols > 0) {
-                insights.push(`🏷️ ${categoricalCols} categorical column${categoricalCols > 1 ? 's' : ''} detected`);
-            }
-            
-            // Add specific insights
-            if (highVarianceCols.length > 0) {
-                insights.push(`⚠️ High variance: ${highVarianceCols.slice(0, 2).join(', ')}${highVarianceCols.length > 2 ? ` (+${highVarianceCols.length - 2} more)` : ''}`);
-            }
-            
-            if (uniqueIdCols.length > 0) {
-                insights.push(`🔑 Unique identifiers: ${uniqueIdCols.slice(0, 2).join(', ')}`);
-            }
-            
-            if (lowCardinalityCols.length > 0) {
-                insights.push(`📊 Low cardinality: ${lowCardinalityCols.slice(0, 2).join(', ')}`);
-            }
-            
-            // Data quality insight
-            const totalCells = filteredData.length * selectedColumns.length;
-            const emptyCells = selectedColumns.reduce((sum, col) => {
-                return sum + filteredData.filter(row => row[col] == null || row[col] === '').length;
-            }, 0);
-            const completeness = ((totalCells - emptyCells) / totalCells * 100).toFixed(1);
-            
-            if (completeness < 95) {
-                insights.push(`⚡ Data completeness: ${completeness}%`);
-            } else {
-                insights.push(`✅ Excellent data quality: ${completeness}% complete`);
-            }
-            
-            // Pivot insight if available
-            const pivotTable = document.getElementById('pivotTable');
-            if (!pivotTable.classList.contains('hidden')) {
-                insights.push(`📈 Pivot analysis ready - use charts to visualize trends`);
-            }
-            
-            const list = document.getElementById('insights');
-            list.innerHTML = insights.map(insight => `<li>${insight}</li>`).join('');
-        }
-        
-        // Export Functions
-        function exportToExcel() {
-            const wb = XLSX.utils.book_new();
-            
-            // Add filtered data sheet
-            const ws1 = XLSX.utils.json_to_sheet(filteredData);
-            XLSX.utils.book_append_sheet(wb, ws1, "Filtered Data");
-            
-            // Add statistics sheet
-            const statsData = [];
-            selectedColumns.forEach(col => {
-                const values = filteredData.map(row => row[col]).filter(v => v != null);
-                const numValues = values.filter(v => !isNaN(v)).map(Number);
-                
-                if (numValues.length > 0) {
-                    const stats = calculateStats(numValues);
-                    statsData.push({
-                        Column: col,
-                        Count: stats.count,
-                        Mean: stats.mean,
-                        Median: stats.median,
-                        'Std Dev': stats.std,
-                        Min: stats.min,
-                        Max: stats.max
-                    });
-                } else {
-                    statsData.push({
-                        Column: col,
-                        Count: values.length,
-                        'Unique Values': new Set(values).size,
-                        Type: 'Categorical'
-                    });
-                }
-            });
-            
-            const ws2 = XLSX.utils.json_to_sheet(statsData);
-            XLSX.utils.book_append_sheet(wb, ws2, "Statistics");
-            
-            // Add pivot data if available
-            const pivotTable = document.getElementById('pivotTable');
-            if (!pivotTable.classList.contains('hidden') && pivotTable.querySelector('table')) {
-                const pivotData = [];
-                const rows = pivotTable.querySelectorAll('tbody tr');
-                const headers = Array.from(pivotTable.querySelectorAll('thead th')).map(th => th.textContent);
-                
-                rows.forEach(row => {
-                    const cells = Array.from(row.querySelectorAll('td'));
-                    const rowData = {};
-                    headers.forEach((header, index) => {
-                        rowData[header] = cells[index]?.textContent || '';
-                    });
-                    pivotData.push(rowData);
-                });
-                
-                if (pivotData.length > 0) {
-                    const ws3 = XLSX.utils.json_to_sheet(pivotData);
-                    XLSX.utils.book_append_sheet(wb, ws3, "Pivot Analysis");
-                }
-            }
-            
-            XLSX.writeFile(wb, `data_analysis_${new Date().toISOString().split('T')[0]}.xlsx`);
-        }
-        
-        function exportToCSV() {
-            const csv = Papa.unparse(filteredData);
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', `filtered_data_${new Date().toISOString().split('T')[0]}.csv`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-        
-        function exportFullReport() {
-            const insights = document.getElementById('insights').innerHTML;
-            const reportContent = `
-# Data Analysis Report
-Generated on: ${new Date().toLocaleDateString()}
-
-## Dataset Summary
-- Total Rows: ${rawData.length}
-- Total Columns: ${Object.keys(rawData[0] || {}).length}
-- Selected Columns: ${selectedColumns.length}
-- Displayed Rows: ${filteredData.length}
-
-## Column Analysis
-${selectedColumns.map(col => {
-    const values = filteredData.map(row => row[col]).filter(v => v != null);
-    const numValues = values.filter(v => !isNaN(v)).map(Number);
-    
-    if (numValues.length > 0) {
-        const stats = calculateStats(numValues);
-        return `### ${col} (Numeric)
-- Count: ${stats.count}
-- Mean: ${stats.mean}
-- Median: ${stats.median}
-- Standard Deviation: ${stats.std}
-- Minimum: ${stats.min}
-- Maximum: ${stats.max}`;
-    } else {
-        const unique = new Set(values).size;
-        return `### ${col} (Categorical)
-- Total Values: ${values.length}
-- Unique Values: ${unique}`;
+    <div class="nav-item" data-page="preview" onclick="showPage('preview',this)" id="nav-preview">
+      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      Data Preview
+      <span class="nav-badge" id="nb-rows">—</span>
+    </div>
+    <div class="nav-section-label">Analysis</div>
+    <div class="nav-item" data-page="stats" onclick="showPage('stats',this)" id="nav-stats">
+      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+      Statistics
+    </div>
+    <div class="nav-item" data-page="pivot" onclick="showPage('pivot',this)" id="nav-pivot">
+      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
+      Pivot Table
+    </div>
+    <div class="nav-item" data-page="charts" onclick="showPage('charts',this)" id="nav-charts">
+      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4v16"/></svg>
+      Charts
+    </div>
+    <div class="nav-item" data-page="correlation" onclick="showPage('correlation',this)" id="nav-corr">
+      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3m10-10h-3M5 12H2m14.24-7.76L19 7m-14 10 2.76 2.76M4.76 4.76 7 7m10 10 2.24 2.24"/></svg>
+      Correlation
+    </div>
+    <div class="nav-section-label">Output</div>
+    <div class="nav-item" data-page="insights" onclick="showPage('insights',this)" id="nav-insights">
+      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+      Insights
+    </div>
+    <div class="nav-item" data-page="export" onclick="showPage('export',this)" id="nav-export">
+      <svg class="nav-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M8 12l4 4 4-4M12 4v12"/></svg>
+      Export
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="creator-tag">⚡ <strong>Bala Excel Insights</strong></div>
+    <div class="creator-tag" style="margin-top:2px;color:var(--text3)">Advanced Analytics v2.0</div>
+  </div>
+</aside>
+ 
+<!-- ─── MAIN ─── -->
+<div class="main">
+  <header class="topbar">
+    <div class="topbar-left">
+      <div class="breadcrumb">DataLens / <span id="breadcrumb-page">Import</span></div>
+    </div>
+    <div class="topbar-right">
+      <div class="status-pill">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">No file loaded</span>
+      </div>
+    </div>
+  </header>
+ 
+  <div class="content">
+ 
+    <!-- ═══ IMPORT PAGE ═══ -->
+    <div class="page active" id="page-upload">
+      <div class="panel fade-in">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">📁</div> Import Data File</div>
+        </div>
+        <div class="panel-body">
+          <div class="upload-zone" id="uploadZone">
+            <span class="upload-icon">🗂️</span>
+            <div class="upload-title">Drop your file here or click to browse</div>
+            <div class="upload-sub">Supports CSV and Excel files with multiple sheets</div>
+            <div class="upload-formats">
+              <span class="format-badge">.csv</span>
+              <span class="format-badge">.xlsx</span>
+              <span class="format-badge">.xls</span>
+            </div>
+          </div>
+          <input type="file" id="fileInput" style="display:none" accept=".csv,.xlsx,.xls">
+          <div id="alertBox"></div>
+        </div>
+      </div>
+ 
+      <!-- Sheet selector (Excel only) -->
+      <div class="panel fade-in" id="sheetPanel" style="display:none">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">📋</div> Select Sheet</div>
+          <div id="sheetCount" style="font-size:.8rem;color:var(--text2);font-family:var(--font-mono)"></div>
+        </div>
+        <div id="sheetTabs" class="sheet-tabs"></div>
+        <div class="panel-body" style="padding-top:14px">
+          <div id="alertBox2"></div>
+          <div class="ctrl-row" style="margin-bottom:14px">
+            <div class="ctrl-group">
+              <span class="ctrl-label">Header row:</span>
+              <select id="headerRow">
+                <option value="1">Row 1</option>
+                <option value="2">Row 2</option>
+                <option value="3">Row 3</option>
+              </select>
+            </div>
+            <div class="ctrl-group">
+              <span class="ctrl-label">Skip empty rows:</span>
+              <select id="skipEmpty">
+                <option value="yes">Yes</option>
+                <option value="no">No</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="loadSelectedSheet()">
+              Load Sheet →
+            </button>
+          </div>
+          <div class="panel" style="margin:0">
+            <div class="panel-header">
+              <div class="panel-title"><div class="panel-icon">👁</div> Sheet Preview</div>
+              <span class="row-badge" id="sheetPreviewBadge"></span>
+            </div>
+            <div class="panel-body" style="padding:0">
+              <div class="tbl-wrap" id="sheetPreviewTable" style="max-height:220px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+ 
+      <!-- Column Selector -->
+      <div class="panel fade-in" id="colPanel" style="display:none">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">🔲</div> Choose Columns for Analysis</div>
+          <div class="panel-actions">
+            <button class="btn btn-ghost btn-sm" onclick="selectAllCols()">All</button>
+            <button class="btn btn-ghost btn-sm" onclick="selectNoneCols()">None</button>
+            <button class="btn btn-ghost btn-sm" onclick="selectNumericCols()">Numeric only</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="col-grid" id="colGrid"></div>
+          <div class="divider"></div>
+          <div class="ctrl-row">
+            <div class="ctrl-group">
+              <span class="ctrl-label">Display rows:</span>
+              <select id="rowLimit">
+                <option value="100">100</option>
+                <option value="500">500</option>
+                <option value="1000">1,000</option>
+                <option value="5000">5,000</option>
+                <option value="all">All</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="applyAndAnalyse()">
+              Analyse →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- ═══ PREVIEW PAGE ═══ -->
+    <div class="page" id="page-preview">
+      <div class="panel fade-in">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">📊</div> Data Preview</div>
+          <div class="panel-actions">
+            <div class="search-input">
+              <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+              <input type="text" id="searchInput" placeholder="Search data…" oninput="filterTable()">
+            </div>
+            <span class="row-badge" id="previewBadge"></span>
+            <button class="btn btn-ghost btn-sm" onclick="sortTable(null)">Reset sort</button>
+          </div>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <div class="tbl-wrap" id="previewTable"></div>
+        </div>
+      </div>
+ 
+      <!-- Data Quality Overview -->
+      <div class="panel fade-in" style="margin-top:16px">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">🔍</div> Data Quality</div>
+        </div>
+        <div class="panel-body" id="qualityBody"></div>
+      </div>
+    </div>
+ 
+    <!-- ═══ STATISTICS PAGE ═══ -->
+    <div class="page" id="page-stats">
+      <div class="panel fade-in">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">📈</div> Descriptive Statistics</div>
+          <div class="panel-actions">
+            <select id="statsColFilter" onchange="renderStats()">
+              <option value="all">All columns</option>
+              <option value="numeric">Numeric only</option>
+              <option value="categorical">Categorical only</option>
+            </select>
+          </div>
+        </div>
+        <div class="panel-body" id="statsBody"></div>
+      </div>
+    </div>
+ 
+    <!-- ═══ PIVOT PAGE ═══ -->
+    <div class="page" id="page-pivot">
+      <div class="panel fade-in">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">🔄</div> Pivot Table Builder</div>
+        </div>
+        <div class="panel-body">
+          <div class="pivot-controls">
+            <div class="ctrl-group">
+              <span class="ctrl-label">Group by:</span>
+              <select id="pivotGroup"></select>
+            </div>
+            <div class="ctrl-group">
+              <span class="ctrl-label">Values:</span>
+              <select id="pivotValue"></select>
+            </div>
+            <div class="ctrl-group">
+              <span class="ctrl-label">Aggregate:</span>
+              <select id="pivotOp">
+                <option value="sum">Sum</option>
+                <option value="avg">Average</option>
+                <option value="count">Count</option>
+                <option value="distinct">Distinct</option>
+                <option value="median">Median</option>
+                <option value="min">Min</option>
+                <option value="max">Max</option>
+                <option value="pct">% of total</option>
+              </select>
+            </div>
+            <div class="ctrl-group">
+              <span class="ctrl-label">Sort by:</span>
+              <select id="pivotSort">
+                <option value="value-desc">Value ↓</option>
+                <option value="value-asc">Value ↑</option>
+                <option value="label-asc">Label A→Z</option>
+                <option value="label-desc">Label Z→A</option>
+              </select>
+            </div>
+            <div class="ctrl-group">
+              <span class="ctrl-label">Limit:</span>
+              <select id="pivotLimit">
+                <option value="10">Top 10</option>
+                <option value="20">Top 20</option>
+                <option value="50">Top 50</option>
+                <option value="all">All</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="generatePivot()">Generate</button>
+            <button class="btn btn-ghost" onclick="clearPivot()">Clear</button>
+          </div>
+          <div id="pivotResult"></div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- ═══ CHARTS PAGE ═══ -->
+    <div class="page" id="page-charts">
+      <div class="panel fade-in">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">📉</div> Data Visualization</div>
+        </div>
+        <div class="panel-body">
+          <div class="pivot-controls">
+            <div class="ctrl-group">
+              <span class="ctrl-label">Chart type:</span>
+              <select id="chartType">
+                <option value="bar">Bar Chart</option>
+                <option value="line">Line Chart</option>
+                <option value="pie">Pie Chart</option>
+                <option value="doughnut">Doughnut</option>
+                <option value="scatter">Scatter Plot</option>
+                <option value="histogram">Histogram</option>
+                <option value="area">Area Chart</option>
+              </select>
+            </div>
+            <div class="ctrl-group">
+              <span class="ctrl-label">X / Group:</span>
+              <select id="chartX"></select>
+            </div>
+            <div class="ctrl-group">
+              <span class="ctrl-label">Y / Value:</span>
+              <select id="chartY"></select>
+            </div>
+            <div class="ctrl-group">
+              <span class="ctrl-label">Aggregate:</span>
+              <select id="chartAgg">
+                <option value="sum">Sum</option>
+                <option value="avg">Average</option>
+                <option value="count">Count</option>
+                <option value="min">Min</option>
+                <option value="max">Max</option>
+              </select>
+            </div>
+            <button class="btn btn-primary" onclick="generateChart()">Draw</button>
+            <button class="btn btn-ghost" onclick="downloadChart()">💾 PNG</button>
+          </div>
+          <div class="chart-wrap">
+            <div class="chart-empty" id="chartEmpty"><span style="font-size:2rem">📉</span>Configure and click Draw</div>
+            <canvas id="mainChart" style="display:none"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- ═══ CORRELATION PAGE ═══ -->
+    <div class="page" id="page-correlation">
+      <div class="panel fade-in">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">🔗</div> Correlation Heatmap</div>
+          <div class="panel-actions">
+            <button class="btn btn-primary btn-sm" onclick="buildCorrelation()">Build Heatmap</button>
+          </div>
+        </div>
+        <div class="panel-body" id="corrBody">
+          <div style="color:var(--text2);font-size:.9rem">Click "Build Heatmap" to compute Pearson correlations between all numeric columns.</div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- ═══ INSIGHTS PAGE ═══ -->
+    <div class="page" id="page-insights">
+      <div class="panel fade-in">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">💡</div> Auto Insights</div>
+          <div class="panel-actions">
+            <button class="btn btn-primary btn-sm" onclick="generateInsights()">Refresh</button>
+          </div>
+        </div>
+        <div class="panel-body" id="insightsBody">
+          <div style="color:var(--text2);font-size:.9rem">Load a dataset to generate automatic insights.</div>
+        </div>
+      </div>
+    </div>
+ 
+    <!-- ═══ EXPORT PAGE ═══ -->
+    <div class="page" id="page-export">
+      <div class="panel fade-in">
+        <div class="panel-header">
+          <div class="panel-title"><div class="panel-icon">📤</div> Export Options</div>
+        </div>
+        <div class="panel-body">
+          <div class="export-grid">
+            <div class="export-card" onclick="exportToExcel()">
+              <div class="export-card-icon">📊</div>
+              <div class="export-card-title">Excel Workbook</div>
+              <div class="export-card-sub">Data + Stats + Pivot sheets</div>
+            </div>
+            <div class="export-card" onclick="exportToCSV()">
+              <div class="export-card-icon">📄</div>
+              <div class="export-card-title">CSV File</div>
+              <div class="export-card-sub">Filtered data as CSV</div>
+            </div>
+            <div class="export-card" onclick="exportStatsCSV()">
+              <div class="export-card-icon">📋</div>
+              <div class="export-card-title">Statistics CSV</div>
+              <div class="export-card-sub">Column statistics table</div>
+            </div>
+            <div class="export-card" onclick="exportReport()">
+              <div class="export-card-icon">📝</div>
+              <div class="export-card-title">Markdown Report</div>
+              <div class="export-card-sub">Full analysis summary</div>
+            </div>
+            <div class="export-card" onclick="downloadChart()">
+              <div class="export-card-icon">🖼️</div>
+              <div class="export-card-title">Chart PNG</div>
+              <div class="export-card-sub">Current chart as image</div>
+            </div>
+            <div class="export-card" onclick="exportPivotCSV()">
+              <div class="export-card-icon">🔄</div>
+              <div class="export-card-title">Pivot CSV</div>
+              <div class="export-card-sub">Current pivot result</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+ 
+  </div><!-- /content -->
+</div><!-- /main -->
+ 
+<script>
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let rawData = [];
+let filteredData = [];
+let displayData = [];
+let selectedCols = [];
+let workbook = null;
+let sheetNames = [];
+let currentSheet = '';
+let fileType = '';
+let currentChart = null;
+let pivotData = [];
+let sortCol = null, sortDir = 1;
+let tableSearchQuery = '';
+ 
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  const zone = document.getElementById('uploadZone');
+  const input = document.getElementById('fileInput');
+ 
+  zone.onclick = () => input.click();
+  input.onchange = e => e.target.files[0] && processFile(e.target.files[0]);
+ 
+  zone.ondragover = e => { e.preventDefault(); zone.classList.add('dragging'); };
+  zone.ondragleave = () => zone.classList.remove('dragging');
+  zone.ondrop = e => {
+    e.preventDefault(); zone.classList.remove('dragging');
+    e.dataTransfer.files[0] && processFile(e.dataTransfer.files[0]);
+  };
+});
+ 
+// ─── PAGES ────────────────────────────────────────────────────────────────────
+function showPage(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  el.classList.add('active');
+  document.getElementById('breadcrumb-page').textContent = el.textContent.trim();
+}
+ 
+// ─── FILE PROCESSING ──────────────────────────────────────────────────────────
+function processFile(file) {
+  showLoading('Reading file…');
+  clearAlert('alertBox');
+ 
+  const ext = file.name.split('.').pop().toLowerCase();
+  fileType = ext;
+ 
+  if (ext === 'csv') {
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      dynamicTyping: true,
+      complete: res => {
+        rawData = res.data;
+        workbook = null;
+        sheetNames = [];
+        currentSheet = 'CSV';
+        document.getElementById('sheetPanel').style.display = 'none';
+        setupColumnSelector(rawData);
+        updateStatus('CSV loaded — ' + rawData.length + ' rows');
+        hideLoading();
+      },
+      error: err => { showAlert('alertBox', 'CSV error: ' + err.message, 'error'); hideLoading(); }
+    });
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array', cellDates: true });
+        sheetNames = workbook.SheetNames;
+        renderSheetTabs(sheetNames);
+        document.getElementById('sheetPanel').style.display = 'block';
+        document.getElementById('sheetCount').textContent = sheetNames.length + ' sheet(s) found';
+        selectSheet(sheetNames[0]);
+        updateStatus('Excel loaded — ' + sheetNames.length + ' sheets');
+        hideLoading();
+      } catch(err) { showAlert('alertBox', 'Excel error: ' + err.message, 'error'); hideLoading(); }
+    };
+    reader.readAsArrayBuffer(file);
+  } else {
+    showAlert('alertBox', 'Please upload a .csv, .xlsx or .xls file.', 'error');
+    hideLoading();
+  }
+}
+ 
+// ─── SHEET HANDLING ───────────────────────────────────────────────────────────
+function renderSheetTabs(names) {
+  const container = document.getElementById('sheetTabs');
+  container.innerHTML = '';
+  names.forEach((name, i) => {
+    const ws = workbook.Sheets[name];
+    const range = ws['!ref'];
+    let rowCount = '?';
+    if (range) {
+      const decoded = XLSX.utils.decode_range(range);
+      rowCount = Math.max(0, decoded.e.r - decoded.s.r);
     }
-}).join('\n\n')}
-
-## Key Insights
-${insights.replace(/<li>/g, '- ').replace(/<\/li>/g, '').replace(/<ul[^>]*>|<\/ul>/g, '')}
-
----
-Report generated by Bala Excel Insights Analytics Dashboard
-            `;
-            
-            const blob = new Blob([reportContent], { type: 'text/markdown;charset=utf-8;' });
-            const link = document.createElement('a');
-            const url = URL.createObjectURL(blob);
-            link.setAttribute('href', url);
-            link.setAttribute('download', `data_analysis_report_${new Date().toISOString().split('T')[0]}.md`);
-            link.style.visibility = 'hidden';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-    </script>
+    const tab = document.createElement('div');
+    tab.className = 'sheet-tab' + (i === 0 ? ' active' : '');
+    tab.id = 'tab-' + i;
+    tab.innerHTML = `<svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M9 17H7A5 5 0 017 7h2M15 7h2a5 5 0 010 10h-2M9 12h6"/></svg>${name}<span class="sheet-rows">~${rowCount}r</span>`;
+    tab.onclick = () => {
+      document.querySelectorAll('.sheet-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      selectSheet(name);
+    };
+    container.appendChild(tab);
+  });
+}
+ 
+function selectSheet(name) {
+  currentSheet = name;
+  const ws = workbook.Sheets[name];
+  // preview first 10 rows
+  const preview = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', blankrows: false }).slice(0, 10);
+  renderSheetPreview(preview);
+}
+ 
+function renderSheetPreview(rows) {
+  if (!rows || rows.length < 2) {
+    document.getElementById('sheetPreviewTable').innerHTML = '<div style="padding:16px;color:var(--text3)">Empty or unreadable sheet.</div>';
+    return;
+  }
+  const headers = rows[0];
+  document.getElementById('sheetPreviewBadge').innerHTML = `Showing first <span>${rows.length - 1}</span> rows`;
+  let html = '<table><thead><tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+  rows.slice(1).forEach(row => {
+    html += '<tr>' + headers.map((_, i) => `<td>${row[i] ?? ''}</td>`).join('') + '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('sheetPreviewTable').innerHTML = html;
+}
+ 
+function loadSelectedSheet() {
+  if (!workbook || !currentSheet) return;
+  showLoading('Loading sheet…');
+  const ws = workbook.Sheets[currentSheet];
+  const skipEmpty = document.getElementById('skipEmpty').value === 'yes';
+  const headerRow = parseInt(document.getElementById('headerRow').value) - 1;
+ 
+  const json = XLSX.utils.sheet_to_json(ws, {
+    defval: null,
+    blankrows: !skipEmpty,
+    range: headerRow
+  });
+ 
+  rawData = json;
+  setupColumnSelector(rawData);
+  updateStatus(currentSheet + ' — ' + rawData.length + ' rows');
+  hideLoading();
+}
+ 
+// ─── COLUMN SELECTOR ──────────────────────────────────────────────────────────
+function setupColumnSelector(data) {
+  if (!data || data.length === 0) {
+    showAlert('alertBox', 'No data found.', 'error'); return;
+  }
+  const cols = Object.keys(data[0]);
+  selectedCols = [...cols];
+ 
+  const grid = document.getElementById('colGrid');
+  grid.innerHTML = '';
+ 
+  cols.forEach(col => {
+    const type = inferType(data, col);
+    const tag = document.createElement('div');
+    tag.className = 'col-tag selected';
+    tag.dataset.col = col;
+    tag.innerHTML = `<div class="col-dot"></div><span>${col}</span><span class="col-type ${type === 'numeric' ? 'num' : type === 'date' ? 'date' : 'cat'}">${type === 'numeric' ? '#' : type === 'date' ? '📅' : 'Aa'}</span>`;
+    tag.onclick = () => toggleCol(tag, col);
+    grid.appendChild(tag);
+  });
+ 
+  document.getElementById('colPanel').style.display = 'block';
+  setupDropdowns(cols);
+}
+ 
+function inferType(data, col) {
+  const sample = data.slice(0, 50).map(r => r[col]).filter(v => v != null && v !== '');
+  if (!sample.length) return 'unknown';
+  const numCount = sample.filter(v => !isNaN(Number(v))).length;
+  if (numCount > sample.length * 0.7) return 'numeric';
+  const dateCount = sample.filter(v => {
+    const d = new Date(v); return !isNaN(d) && typeof v === 'string' && v.includes('-');
+  }).length;
+  if (dateCount > sample.length * 0.5) return 'date';
+  return 'categorical';
+}
+ 
+function toggleCol(el, col) {
+  el.classList.toggle('selected');
+  selectedCols = Array.from(document.querySelectorAll('.col-tag.selected')).map(t => t.dataset.col);
+}
+function selectAllCols() {
+  document.querySelectorAll('.col-tag').forEach(t => t.classList.add('selected'));
+  selectedCols = Array.from(document.querySelectorAll('.col-tag')).map(t => t.dataset.col);
+}
+function selectNoneCols() {
+  document.querySelectorAll('.col-tag').forEach(t => t.classList.remove('selected'));
+  selectedCols = [];
+}
+function selectNumericCols() {
+  document.querySelectorAll('.col-tag').forEach(t => {
+    const isNum = t.querySelector('.col-type.num');
+    t.classList.toggle('selected', !!isNum);
+  });
+  selectedCols = Array.from(document.querySelectorAll('.col-tag.selected')).map(t => t.dataset.col);
+}
+ 
+// ─── APPLY & ANALYSE ──────────────────────────────────────────────────────────
+function applyAndAnalyse() {
+  if (selectedCols.length === 0) { showAlert('alertBox', 'Please select at least one column.', 'error'); return; }
+  const limit = document.getElementById('rowLimit').value;
+  const maxRows = limit === 'all' ? rawData.length : parseInt(limit);
+ 
+  filteredData = rawData.slice(0, maxRows).map(row => {
+    const out = {};
+    selectedCols.forEach(c => { out[c] = row[c]; });
+    return out;
+  });
+  displayData = [...filteredData];
+ 
+  document.getElementById('nb-rows').textContent = filteredData.length;
+ 
+  renderPreviewTable();
+  renderQuality();
+  renderStats();
+  generateInsights();
+  setupDropdowns(selectedCols);
+ 
+  // Show analysis nav
+  ['nav-preview','nav-stats','nav-pivot','nav-charts','nav-corr','nav-insights','nav-export'].forEach(id => {
+    document.getElementById(id).style.opacity = '1';
+  });
+ 
+  showPage('preview', document.querySelector('[data-page="preview"]'));
+}
+ 
+// ─── PREVIEW TABLE ────────────────────────────────────────────────────────────
+function renderPreviewTable() {
+  const search = tableSearchQuery.toLowerCase();
+  const data = search
+    ? displayData.filter(row => selectedCols.some(c => String(row[c] ?? '').toLowerCase().includes(search)))
+    : displayData;
+ 
+  document.getElementById('previewBadge').innerHTML = `<span>${data.length}</span> / ${filteredData.length} rows`;
+ 
+  let html = '<table><thead><tr>';
+  selectedCols.forEach(col => {
+    const cls = sortCol === col ? (sortDir > 0 ? 'sort-asc' : 'sort-desc') : '';
+    html += `<th class="${cls}" onclick="sortTable('${col.replace(/'/g,"\\'")}')">${col}<span class="sort-icon"></span></th>`;
+  });
+  html += '</tr></thead><tbody>';
+ 
+  data.forEach(row => {
+    html += '<tr>';
+    selectedCols.forEach(col => {
+      const val = row[col];
+      if (val == null || val === '') { html += '<td class="null-cell">null</td>'; return; }
+      const isNum = !isNaN(Number(val)) && val !== '';
+      html += `<td class="${isNum ? 'num-cell' : ''}">${val}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  document.getElementById('previewTable').innerHTML = html;
+}
+ 
+function filterTable() {
+  tableSearchQuery = document.getElementById('searchInput').value;
+  renderPreviewTable();
+}
+ 
+function sortTable(col) {
+  if (col === null) { sortCol = null; displayData = [...filteredData]; renderPreviewTable(); return; }
+  if (sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = 1; }
+  displayData = [...filteredData].sort((a, b) => {
+    const va = a[col], vb = b[col];
+    if (va == null) return 1; if (vb == null) return -1;
+    const na = Number(va), nb = Number(vb);
+    if (!isNaN(na) && !isNaN(nb)) return (na - nb) * sortDir;
+    return String(va).localeCompare(String(vb)) * sortDir;
+  });
+  renderPreviewTable();
+}
+ 
+// ─── QUALITY ──────────────────────────────────────────────────────────────────
+function renderQuality() {
+  const total = filteredData.length;
+  let html = '<div class="col-grid" style="gap:12px">';
+  selectedCols.forEach(col => {
+    const vals = filteredData.map(r => r[col]);
+    const nulls = vals.filter(v => v == null || v === '').length;
+    const unique = new Set(vals.filter(v => v != null)).size;
+    const pct = total ? (((total - nulls) / total) * 100).toFixed(1) : 0;
+    const color = pct >= 95 ? 'var(--accent)' : pct >= 70 ? 'var(--accent4)' : 'var(--danger)';
+    const type = inferType(filteredData, col);
+    html += `<div class="col-stat-block">
+      <div class="col-stat-head">
+        <div class="col-stat-name">${col}</div>
+        <span class="col-type ${type === 'numeric' ? 'num' : type === 'date' ? 'date' : 'cat'}">${type}</span>
+      </div>
+      <div class="col-stat-body">
+        <div style="display:flex;justify-content:space-between;font-size:.78rem;color:var(--text2);margin-bottom:4px">
+          <span>Completeness</span><span style="color:${color};font-family:var(--font-mono)">${pct}%</span>
+        </div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color}"></div></div>
+        <div style="display:flex;gap:12px;margin-top:8px;font-size:.75rem;color:var(--text3);font-family:var(--font-mono)">
+          <span>${nulls} nulls</span><span>${unique} unique</span>
+        </div>
+      </div>
+    </div>`;
+  });
+  html += '</div>';
+  document.getElementById('qualityBody').innerHTML = html;
+}
+ 
+// ─── STATS ────────────────────────────────────────────────────────────────────
+function renderStats() {
+  const filter = document.getElementById('statsColFilter') ? document.getElementById('statsColFilter').value : 'all';
+  const container = document.getElementById('statsBody');
+  let html = '';
+ 
+  const cols = selectedCols.filter(col => {
+    const type = inferType(filteredData, col);
+    if (filter === 'numeric') return type === 'numeric';
+    if (filter === 'categorical') return type !== 'numeric';
+    return true;
+  });
+ 
+  cols.forEach(col => {
+    const vals = filteredData.map(r => r[col]).filter(v => v != null && v !== '');
+    const numVals = vals.filter(v => !isNaN(Number(v))).map(Number);
+    const type = inferType(filteredData, col);
+ 
+    if (type === 'numeric' && numVals.length > 0) {
+      const s = calcStats(numVals);
+      const histBins = buildHistBins(numVals, 10);
+      const maxBin = Math.max(...histBins);
+ 
+      html += `<div class="col-stat-block">
+        <div class="col-stat-head">
+          <div class="col-stat-name">${col}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="col-type num">numeric</span>
+            <span class="tag">${numVals.length} values</span>
+          </div>
+        </div>
+        <div class="col-stat-body">
+          <div class="stats-kpi-grid">
+            ${mkKpi(fmt(s.mean),'Mean','var(--accent)')}
+            ${mkKpi(fmt(s.median),'Median','var(--accent2)')}
+            ${mkKpi(fmt(s.std),'Std Dev','var(--accent3)')}
+            ${mkKpi(fmt(s.min),'Min','var(--accent4)')}
+            ${mkKpi(fmt(s.max),'Max','var(--success)')}
+            ${mkKpi(fmt(s.q1),'Q1','var(--text2)')}
+            ${mkKpi(fmt(s.q3),'Q3','var(--text2)')}
+            ${mkKpi(fmt(s.iqr),'IQR','var(--text2)')}
+            ${mkKpi(fmt(s.skew),'Skewness','var(--accent3)')}
+            ${mkKpi(s.outliers,'Outliers','var(--danger)')}
+          </div>
+          <div style="font-size:.75rem;color:var(--text3);margin-top:8px;font-family:var(--font-mono)">Distribution</div>
+          <div class="mini-hist">
+            ${histBins.map(b => `<div class="hist-bar" style="height:${maxBin > 0 ? Math.max(4,(b/maxBin*100)) : 4}%" title="${b}"></div>`).join('')}
+          </div>
+        </div>
+      </div>`;
+    } else {
+      // Categorical
+      const freq = {};
+      vals.forEach(v => { const k = String(v); freq[k] = (freq[k]||0)+1; });
+      const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,5);
+      const unique = Object.keys(freq).length;
+ 
+      html += `<div class="col-stat-block">
+        <div class="col-stat-head">
+          <div class="col-stat-name">${col}</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <span class="col-type cat">categorical</span>
+            <span class="tag">${unique} unique</span>
+          </div>
+        </div>
+        <div class="col-stat-body">
+          <div class="stats-kpi-grid">
+            ${mkKpi(vals.length,'Count','var(--accent)')}
+            ${mkKpi(unique,'Unique','var(--accent2)')}
+            ${mkKpi(sorted[0]?sorted[0][0]:'—','Mode','var(--accent3)')}
+            ${mkKpi(sorted[0]?sorted[0][1]:'—','Mode count','var(--text2)')}
+          </div>
+          <div style="font-size:.75rem;color:var(--text3);margin-top:12px;font-family:var(--font-mono);margin-bottom:8px">Top values</div>
+          ${sorted.map(([k,v]) => `<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+            <div style="font-size:.8rem;min-width:120px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${k}</div>
+            <div style="flex:1;height:5px;background:var(--surface3);border-radius:3px"><div style="height:100%;width:${(v/vals.length*100).toFixed(1)}%;background:var(--accent2);border-radius:3px"></div></div>
+            <div style="font-size:.75rem;font-family:var(--font-mono);color:var(--text2)">${v}</div>
+          </div>`).join('')}
+        </div>
+      </div>`;
+    }
+  });
+ 
+  container.innerHTML = html || '<div style="color:var(--text2)">No columns selected.</div>';
+}
+ 
+function mkKpi(val, label, color) {
+  return `<div class="kpi-card" style="--accent-color:${color}"><div class="kpi-val">${val}</div><div class="kpi-name">${label}</div></div>`;
+}
+ 
+function calcStats(arr) {
+  const sorted = [...arr].sort((a,b)=>a-b);
+  const n = arr.length;
+  const sum = arr.reduce((a,b)=>a+b,0);
+  const mean = sum/n;
+  const mid = Math.floor(n/2);
+  const median = n%2 ? sorted[mid] : (sorted[mid-1]+sorted[mid])/2;
+  const variance = arr.reduce((a,v)=>a+Math.pow(v-mean,2),0)/n;
+  const std = Math.sqrt(variance);
+  const q1 = sorted[Math.floor(n*0.25)];
+  const q3 = sorted[Math.floor(n*0.75)];
+  const iqr = q3-q1;
+  const lo = q1 - 1.5*iqr, hi = q3 + 1.5*iqr;
+  const outliers = arr.filter(v=>v<lo||v>hi).length;
+  // Skewness (Pearson's)
+  const skew = std > 0 ? (3*(mean-median)/std).toFixed(2) : 0;
+  return { mean, median, std, min: sorted[0], max: sorted[n-1], q1, q3, iqr, outliers, skew };
+}
+ 
+function buildHistBins(arr, bins) {
+  const min = Math.min(...arr), max = Math.max(...arr);
+  if (min === max) return [arr.length, ...Array(bins-1).fill(0)];
+  const size = (max - min) / bins;
+  const counts = Array(bins).fill(0);
+  arr.forEach(v => { let i = Math.min(Math.floor((v-min)/size), bins-1); counts[i]++; });
+  return counts;
+}
+ 
+function fmt(n) {
+  if (typeof n !== 'number' && isNaN(n)) return n;
+  const num = Number(n);
+  if (Math.abs(num) >= 1e6) return (num/1e6).toFixed(2)+'M';
+  if (Math.abs(num) >= 1e3) return (num/1e3).toFixed(2)+'K';
+  return num.toFixed(2);
+}
+ 
+// ─── PIVOT ────────────────────────────────────────────────────────────────────
+function setupDropdowns(cols) {
+  ['pivotGroup','pivotValue','chartX','chartY'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = '<option value="">— select —</option>';
+    cols.forEach(c => { el.innerHTML += `<option value="${c}">${c}</option>`; });
+  });
+}
+ 
+function generatePivot() {
+  const groupCol = document.getElementById('pivotGroup').value;
+  const valCol = document.getElementById('pivotValue').value;
+  const op = document.getElementById('pivotOp').value;
+  const sortMode = document.getElementById('pivotSort').value;
+  const limitVal = document.getElementById('pivotLimit').value;
+ 
+  if (!groupCol || !valCol) { showAlert('alertBox2','Select both group and value columns.','error'); return; }
+ 
+  const groups = {};
+  filteredData.forEach(row => {
+    const key = String(row[groupCol] ?? '(blank)');
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(row[valCol]);
+  });
+ 
+  const rows = Object.entries(groups).map(([key, vals]) => {
+    const nums = vals.filter(v=>v!=null&&!isNaN(Number(v))).map(Number);
+    let result;
+    switch(op) {
+      case 'sum': result = nums.reduce((a,b)=>a+b,0); break;
+      case 'avg': result = nums.length ? nums.reduce((a,b)=>a+b,0)/nums.length : 0; break;
+      case 'count': result = vals.length; break;
+      case 'distinct': result = new Set(vals).size; break;
+      case 'median':
+        const s = [...nums].sort((a,b)=>a-b);
+        const m = Math.floor(s.length/2);
+        result = s.length%2 ? s[m] : (s[m-1]+s[m])/2; break;
+      case 'min': result = nums.length ? Math.min(...nums) : null; break;
+      case 'max': result = nums.length ? Math.max(...nums) : null; break;
+      case 'pct': result = null; break; // compute after
+    }
+    return { label: key, value: result };
+  });
+ 
+  if (op === 'pct') {
+    const total = rows.reduce((a,r)=>{
+      const nums = groups[r.label].filter(v=>v!=null&&!isNaN(Number(v))).map(Number);
+      return a + nums.reduce((x,y)=>x+y,0);
+    },0);
+    rows.forEach(r => {
+      const nums = groups[r.label].filter(v=>v!=null&&!isNaN(Number(v))).map(Number);
+      r.value = total ? (nums.reduce((a,b)=>a+b,0)/total*100) : 0;
+    });
+  }
+ 
+  // Sort
+  rows.sort((a,b)=>{
+    switch(sortMode){
+      case 'value-desc': return (b.value||0)-(a.value||0);
+      case 'value-asc': return (a.value||0)-(b.value||0);
+      case 'label-asc': return a.label.localeCompare(b.label);
+      case 'label-desc': return b.label.localeCompare(a.label);
+    }
+  });
+ 
+  // Limit
+  const limited = limitVal === 'all' ? rows : rows.slice(0, parseInt(limitVal));
+  pivotData = limited;
+ 
+  const valueLabel = `${op}(${valCol})${op==='pct'?' %':''}`;
+  const total = rows.reduce((a,r)=>(a+(r.value||0)),0);
+ 
+  let html = `<div class="tbl-wrap"><table><thead><tr><th>${groupCol}</th><th>${valueLabel}</th><th>Share</th><th>Bar</th></tr></thead><tbody>`;
+  const maxVal = Math.max(...limited.map(r=>r.value||0));
+  limited.forEach(r => {
+    const pct = total > 0 ? (r.value/total*100).toFixed(1) : '—';
+    const barPct = maxVal > 0 ? (r.value/maxVal*100).toFixed(1) : 0;
+    html += `<tr>
+      <td>${r.label}</td>
+      <td class="num-cell">${r.value != null ? Number(r.value).toFixed(2) : '—'}</td>
+      <td class="num-cell">${pct}%</td>
+      <td style="min-width:100px"><div style="height:6px;background:var(--surface3);border-radius:3px"><div style="height:100%;width:${barPct}%;background:var(--accent);border-radius:3px"></div></div></td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  html += `<div style="margin-top:10px;font-size:.78rem;color:var(--text3);font-family:var(--font-mono)">Showing ${limited.length} of ${rows.length} groups · Total: ${total.toFixed(2)}</div>`;
+ 
+  document.getElementById('pivotResult').innerHTML = html;
+}
+ 
+function clearPivot() {
+  document.getElementById('pivotResult').innerHTML = '';
+  pivotData = [];
+}
+ 
+// ─── CHARTS ───────────────────────────────────────────────────────────────────
+function generateChart() {
+  const type = document.getElementById('chartType').value;
+  const xCol = document.getElementById('chartX').value;
+  const yCol = document.getElementById('chartY').value;
+  const agg = document.getElementById('chartAgg').value;
+ 
+  if (!xCol) { showAlert('alertBox','Select X / Group column.','error'); return; }
+ 
+  const canvas = document.getElementById('mainChart');
+  const empty = document.getElementById('chartEmpty');
+  if (currentChart) { currentChart.destroy(); currentChart = null; }
+ 
+  canvas.style.display = 'block';
+  empty.style.display = 'none';
+ 
+  if (type === 'scatter') {
+    if (!yCol) { alert('Select Y column for scatter plot.'); return; }
+    const pts = filteredData.map(r => ({ x: Number(r[xCol]), y: Number(r[yCol]) })).filter(p => !isNaN(p.x) && !isNaN(p.y));
+    currentChart = new Chart(canvas.getContext('2d'), {
+      type: 'scatter',
+      data: { datasets: [{ label: `${xCol} vs ${yCol}`, data: pts, backgroundColor: 'rgba(110,231,183,.5)', borderColor: 'rgba(110,231,183,.8)', pointRadius: 4 }] },
+      options: chartOpts(`${xCol} vs ${yCol}`, xCol, yCol)
+    });
+    return;
+  }
+ 
+  if (type === 'histogram') {
+    const nums = filteredData.map(r=>Number(r[xCol])).filter(v=>!isNaN(v));
+    if (!nums.length) { alert('No numeric values in selected column.'); return; }
+    const bins = buildHistBins(nums, 15);
+    const min = Math.min(...nums), max = Math.max(...nums);
+    const size = (max-min)/15;
+    const labels = bins.map((_,i)=>(min+i*size).toFixed(2));
+    currentChart = new Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: { labels, datasets: [{ label: 'Frequency', data: bins, backgroundColor: 'rgba(129,140,248,.7)', borderColor: 'rgba(129,140,248,1)', borderWidth: 1, borderRadius: 3 }] },
+      options: chartOpts(`Distribution of ${xCol}`, xCol, 'Frequency')
+    });
+    return;
+  }
+ 
+  // Aggregate for other chart types
+  const col = yCol || xCol;
+  const groups = {};
+  filteredData.forEach(row => {
+    const key = String(row[xCol] ?? '(blank)');
+    if (!groups[key]) groups[key] = [];
+    if (yCol) groups[key].push(Number(row[yCol]));
+    else groups[key].push(1);
+  });
+ 
+  let entries = Object.entries(groups).map(([k, vals]) => {
+    const nums = vals.filter(v=>!isNaN(v));
+    let val;
+    switch(agg){
+      case 'sum': val = nums.reduce((a,b)=>a+b,0); break;
+      case 'avg': val = nums.length ? nums.reduce((a,b)=>a+b,0)/nums.length : 0; break;
+      case 'count': val = vals.length; break;
+      case 'min': val = Math.min(...nums); break;
+      case 'max': val = Math.max(...nums); break;
+    }
+    return { label: k, value: val };
+  }).sort((a,b)=>b.value-a.value).slice(0, 20);
+ 
+  const labels = entries.map(e=>e.label.length>15?e.label.slice(0,15)+'…':e.label);
+  const data = entries.map(e=>e.value);
+  const palette = entries.map((_,i)=>`hsla(${170 + i*18},70%,60%,.75)`);
+ 
+  const isPie = type === 'pie' || type === 'doughnut';
+  currentChart = new Chart(canvas.getContext('2d'), {
+    type: type === 'area' ? 'line' : type,
+    data: {
+      labels,
+      datasets: [{
+        label: `${agg}(${col})`,
+        data,
+        backgroundColor: isPie ? palette : 'rgba(110,231,183,.65)',
+        borderColor: isPie ? palette.map(c=>c.replace('.75','.9')) : 'rgba(110,231,183,1)',
+        borderWidth: isPie ? 2 : 2,
+        borderRadius: type === 'bar' ? 4 : 0,
+        fill: type === 'area',
+        tension: .35,
+        pointBackgroundColor: 'rgba(110,231,183,1)',
+        pointRadius: type === 'line' || type === 'area' ? 3 : 0
+      }]
+    },
+    options: isPie ? pieOpts(`${agg}(${col}) by ${xCol}`) : chartOpts(`${agg}(${col}) by ${xCol}`, xCol, `${agg}(${col})`)
+  });
+}
+ 
+function chartOpts(title, xLabel, yLabel) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      title: { display: true, text: title, color: '#e8ecf4', font: { size: 14, family: "'Syne',sans-serif", weight: '700' } },
+      legend: { labels: { color: '#8b93a7', font: { family: "'DM Sans',sans-serif" } } }
+    },
+    scales: {
+      x: { title: { display: true, text: xLabel, color: '#8b93a7' }, ticks: { color: '#8b93a7' }, grid: { color: 'rgba(255,255,255,.05)' } },
+      y: { beginAtZero: true, title: { display: true, text: yLabel, color: '#8b93a7' }, ticks: { color: '#8b93a7' }, grid: { color: 'rgba(255,255,255,.05)' } }
+    }
+  };
+}
+function pieOpts(title) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      title: { display: true, text: title, color: '#e8ecf4', font: { size: 14, family: "'Syne',sans-serif", weight: '700' } },
+      legend: { position: 'right', labels: { color: '#8b93a7', boxWidth: 12, font: { family: "'DM Sans',sans-serif", size: 11 } } }
+    }
+  };
+}
+ 
+function downloadChart() {
+  const canvas = document.getElementById('mainChart');
+  if (!currentChart) { alert('Generate a chart first.'); return; }
+  const a = document.createElement('a');
+  a.href = canvas.toDataURL('image/png');
+  a.download = 'chart.png';
+  a.click();
+}
+ 
+// ─── CORRELATION ──────────────────────────────────────────────────────────────
+function buildCorrelation() {
+  const numCols = selectedCols.filter(c => inferType(filteredData, c) === 'numeric');
+  if (numCols.length < 2) {
+    document.getElementById('corrBody').innerHTML = '<div class="alert alert-info">Need at least 2 numeric columns for correlation.</div>';
+    return;
+  }
+ 
+  const n = numCols.length;
+  const matrix = Array.from({length:n}, ()=>Array(n).fill(0));
+ 
+  for (let i=0; i<n; i++) for (let j=0; j<n; j++) {
+    const a = filteredData.map(r=>Number(r[numCols[i]])).filter(v=>!isNaN(v));
+    const b = filteredData.map(r=>Number(r[numCols[j]])).filter(v=>!isNaN(v));
+    matrix[i][j] = pearson(a, b);
+  }
+ 
+  // Render
+  const cellSize = Math.max(44, Math.min(80, Math.floor(600/n)));
+  let html = `<div style="overflow-x:auto"><div style="display:inline-grid;grid-template-columns:auto repeat(${n},${cellSize}px);gap:2px;align-items:center">`;
+ 
+  // Corner
+  html += '<div></div>';
+  numCols.forEach(c => {
+    html += `<div class="heatmap-label" style="height:${cellSize}px;font-size:.65rem;writing-mode:vertical-lr;transform:rotate(180deg);padding:4px">${c.slice(0,12)}</div>`;
+  });
+ 
+  for (let i=0; i<n; i++) {
+    html += `<div class="heatmap-label" style="padding-right:8px;justify-content:flex-end;font-size:.7rem">${numCols[i].slice(0,12)}</div>`;
+    for (let j=0; j<n; j++) {
+      const val = matrix[i][j];
+      const bg = corrColor(val);
+      const textColor = Math.abs(val) > 0.5 ? '#0d0f14' : '#e8ecf4';
+      html += `<div class="heatmap-cell" style="background:${bg};color:${textColor};width:${cellSize}px;font-size:${cellSize > 55 ? '.7rem' : '.6rem'}" title="${numCols[i]} × ${numCols[j]}: ${val.toFixed(3)}">${val.toFixed(2)}</div>`;
+    }
+  }
+  html += '</div></div>';
+  html += `<div style="margin-top:12px;display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--text2)">
+    <div style="display:flex;align-items:center;gap:4px"><div style="width:20px;height:10px;background:#1a6b3c;border-radius:2px"></div>Strong positive</div>
+    <div style="display:flex;align-items:center;gap:4px"><div style="width:20px;height:10px;background:var(--surface3);border-radius:2px"></div>No correlation</div>
+    <div style="display:flex;align-items:center;gap:4px"><div style="width:20px;height:10px;background:#6b1a1a;border-radius:2px"></div>Strong negative</div>
+  </div>`;
+  document.getElementById('corrBody').innerHTML = html;
+}
+ 
+function pearson(a, b) {
+  const n = Math.min(a.length, b.length);
+  if (n < 2) return 0;
+  const ax = a.slice(0,n), bx = b.slice(0,n);
+  const ma = ax.reduce((s,v)=>s+v,0)/n;
+  const mb = bx.reduce((s,v)=>s+v,0)/n;
+  let num=0, da=0, db=0;
+  for (let i=0;i<n;i++) { num+=(ax[i]-ma)*(bx[i]-mb); da+=(ax[i]-ma)**2; db+=(bx[i]-mb)**2; }
+  return (da&&db) ? num/Math.sqrt(da*db) : 0;
+}
+ 
+function corrColor(val) {
+  if (val >= 0) {
+    const g = Math.round(40 + val * 160);
+    return `rgb(0,${g},${Math.round(40+val*60)})`;
+  } else {
+    const r = Math.round(40 + Math.abs(val) * 160);
+    return `rgb(${r},0,${Math.round(40+Math.abs(val)*30)})`;
+  }
+}
+ 
+// ─── INSIGHTS ─────────────────────────────────────────────────────────────────
+function generateInsights() {
+  if (!filteredData.length) return;
+  const insights = [];
+ 
+  insights.push({ icon:'📊', text:`Dataset: <strong>${rawData.length}</strong> rows × <strong>${Object.keys(rawData[0]||{}).length}</strong> total columns`, color:'var(--accent)' });
+  insights.push({ icon:'🎯', text:`Analysis scope: <strong>${filteredData.length}</strong> rows, <strong>${selectedCols.length}</strong> columns selected`, color:'var(--accent2)' });
+ 
+  const numCols = selectedCols.filter(c=>inferType(filteredData,c)==='numeric');
+  const catCols = selectedCols.filter(c=>inferType(filteredData,c)!=='numeric');
+  insights.push({ icon:'🔢', text:`Column types: <strong>${numCols.length}</strong> numeric, <strong>${catCols.length}</strong> categorical`, color:'var(--accent3)' });
+ 
+  // Completeness
+  const totalCells = filteredData.length * selectedCols.length;
+  const nullCells = selectedCols.reduce((s,c)=>s+filteredData.filter(r=>r[c]==null||r[c]==='').length, 0);
+  const pct = ((totalCells-nullCells)/totalCells*100).toFixed(1);
+  const comp = Number(pct);
+  insights.push({ icon: comp>=95?'✅':'⚠️', text:`Data completeness: <strong>${pct}%</strong> (${nullCells} null cells)`, color: comp>=95?'var(--accent)':'var(--accent4)' });
+ 
+  // Outliers
+  numCols.forEach(col => {
+    const nums = filteredData.map(r=>Number(r[col])).filter(v=>!isNaN(v));
+    if (nums.length<4) return;
+    const s = calcStats(nums);
+    if (s.outliers > 0) insights.push({ icon:'🔺', text:`<strong>${col}</strong>: ${s.outliers} outlier(s) detected (IQR method)`, color:'var(--danger)' });
+    const skew = parseFloat(s.skew);
+    if (Math.abs(skew) > 1) insights.push({ icon:'↗️', text:`<strong>${col}</strong>: ${skew>0?'positively':'negatively'} skewed (skewness ${s.skew})`, color:'var(--accent3)' });
+  });
+ 
+  // Constant columns
+  selectedCols.forEach(col => {
+    const unique = new Set(filteredData.map(r=>r[col]).filter(v=>v!=null)).size;
+    if (unique === 1) insights.push({ icon:'⚡', text:`<strong>${col}</strong>: constant column (only one unique value)`, color:'var(--danger)' });
+    if (unique === filteredData.length && filteredData.length > 1) insights.push({ icon:'🔑', text:`<strong>${col}</strong>: all values unique — likely an ID column`, color:'var(--accent2)' });
+  });
+ 
+  // High correlation
+  if (numCols.length >= 2) {
+    for (let i=0;i<numCols.length;i++) for (let j=i+1;j<numCols.length;j++) {
+      const a = filteredData.map(r=>Number(r[numCols[i]])).filter(v=>!isNaN(v));
+      const b = filteredData.map(r=>Number(r[numCols[j]])).filter(v=>!isNaN(v));
+      const r = pearson(a,b);
+      if (Math.abs(r) > 0.85) insights.push({ icon:'🔗', text:`<strong>${numCols[i]}</strong> & <strong>${numCols[j]}</strong> are highly correlated (r = ${r.toFixed(2)})`, color:'var(--accent)' });
+    }
+  }
+ 
+  const list = document.getElementById('insightsBody');
+  list.innerHTML = `<ul class="insight-list">
+    ${insights.map((ins,i)=>`<li class="insight-item" style="--accent-color:${ins.color};animation-delay:${i*40}ms"><span class="insight-icon">${ins.icon}</span><span>${ins.text}</span></li>`).join('')}
+  </ul>`;
+}
+ 
+// ─── EXPORTS ─────────────────────────────────────────────────────────────────
+function exportToExcel() {
+  if (!filteredData.length) { alert('No data to export.'); return; }
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(filteredData), 'Data');
+ 
+  const statsData = [];
+  selectedCols.forEach(col => {
+    const nums = filteredData.map(r=>Number(r[col])).filter(v=>!isNaN(v));
+    if (nums.length > 0) {
+      const s = calcStats(nums);
+      statsData.push({ Column:col, Type:'Numeric', Count:nums.length, Mean:+s.mean.toFixed(4), Median:+s.median.toFixed(4), StdDev:+s.std.toFixed(4), Min:s.min, Max:s.max, Q1:s.q1, Q3:s.q3, IQR:s.iqr, Skewness:s.skew, Outliers:s.outliers });
+    } else {
+      const vals = filteredData.map(r=>r[col]).filter(v=>v!=null&&v!=='');
+      statsData.push({ Column:col, Type:'Categorical', Count:vals.length, Unique:new Set(vals).size });
+    }
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(statsData), 'Statistics');
+ 
+  if (pivotData.length) {
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pivotData.map(r=>({Group:r.label, Value:r.value}))), 'Pivot');
+  }
+ 
+  XLSX.writeFile(wb, `analysis_${today()}.xlsx`);
+}
+ 
+function exportToCSV() {
+  if (!filteredData.length) { alert('No data.'); return; }
+  dl(Papa.unparse(filteredData), `data_${today()}.csv`, 'text/csv');
+}
+ 
+function exportStatsCSV() {
+  const rows = [];
+  selectedCols.forEach(col => {
+    const nums = filteredData.map(r=>Number(r[col])).filter(v=>!isNaN(v));
+    if (nums.length) { const s=calcStats(nums); rows.push({Column:col,Type:'Numeric',Count:nums.length,Mean:+s.mean.toFixed(4),Median:+s.median.toFixed(4),StdDev:+s.std.toFixed(4),Min:s.min,Max:s.max}); }
+    else { const v=filteredData.map(r=>r[col]).filter(v=>v!=null&&v!==''); rows.push({Column:col,Type:'Categorical',Count:v.length,Unique:new Set(v).size}); }
+  });
+  dl(Papa.unparse(rows), `statistics_${today()}.csv`, 'text/csv');
+}
+ 
+function exportPivotCSV() {
+  if (!pivotData.length) { alert('Generate a pivot table first.'); return; }
+  dl(Papa.unparse(pivotData.map(r=>({Group:r.label, Value:r.value}))), `pivot_${today()}.csv`, 'text/csv');
+}
+ 
+function exportReport() {
+  let md = `# Data Analysis Report\nGenerated: ${new Date().toLocaleString()}\n\n`;
+  md += `## Dataset Overview\n- Total rows: ${rawData.length}\n- Displayed rows: ${filteredData.length}\n- Columns analysed: ${selectedCols.length}\n- Source sheet: ${currentSheet}\n\n`;
+  md += `## Column Statistics\n`;
+  selectedCols.forEach(col => {
+    const nums = filteredData.map(r=>Number(r[col])).filter(v=>!isNaN(v));
+    if (nums.length) {
+      const s=calcStats(nums);
+      md += `### ${col} (Numeric)\n- Count: ${nums.length}\n- Mean: ${s.mean.toFixed(4)}\n- Median: ${s.median.toFixed(4)}\n- Std Dev: ${s.std.toFixed(4)}\n- Min: ${s.min}\n- Max: ${s.max}\n- Outliers: ${s.outliers}\n\n`;
+    } else {
+      const v=filteredData.map(r=>r[col]).filter(v=>v!=null&&v!=='');
+      md += `### ${col} (Categorical)\n- Count: ${v.length}\n- Unique: ${new Set(v).size}\n\n`;
+    }
+  });
+  md += `\n---\n*Created by Bala Excel Insights — DataLens v2.0*`;
+  dl(md, `report_${today()}.md`, 'text/markdown');
+}
+ 
+function dl(content, filename, mime) {
+  const blob = new Blob([content], {type: mime});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+ 
+function today() { return new Date().toISOString().split('T')[0]; }
+ 
+// ─── UI HELPERS ───────────────────────────────────────────────────────────────
+function showLoading(msg) {
+  document.getElementById('loadingText').textContent = msg || 'Loading…';
+  document.getElementById('loadingOverlay').classList.add('show');
+}
+function hideLoading() { document.getElementById('loadingOverlay').classList.remove('show'); }
+ 
+function showAlert(id, msg, type) {
+  document.getElementById(id).innerHTML = `<div class="alert alert-${type}">⚠️ ${msg}</div>`;
+  setTimeout(()=>{ const el=document.getElementById(id); if(el) el.innerHTML=''; }, 5000);
+}
+function clearAlert(id) { const el=document.getElementById(id); if(el) el.innerHTML=''; }
+ 
+function updateStatus(msg) {
+  document.getElementById('statusText').textContent = msg;
+  document.getElementById('statusDot').classList.add('active');
+}
+</script>
 </body>
 </html>
